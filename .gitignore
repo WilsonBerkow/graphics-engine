@@ -1,0 +1,6 @@
+target
+*.ppm
+*.png
+
+*~
+*.sw[a-z]
