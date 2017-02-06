@@ -1,12 +1,16 @@
 # work1
 
-With `cargo`, the Rust build system, installed, run
+To run:
 
 ```
-$ cargo build
+$ rustc src/main.rs
+$ ./main
 ```
 
-to build. To run:
+This creates `img.ppm`.
+
+Or, with [cargo](http://doc.crates.io/) (the Rust package manager)
+installed:
 
 ```
 $ cargo run
