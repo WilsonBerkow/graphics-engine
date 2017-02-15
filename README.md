@@ -1,17 +1,17 @@
 # work1
 
-To run:
+## Install `rustc`
+
+From [rust-lang.org's instructions](https://www.rust-lang.org/en-US/install.html),
+run the following to install rust:
+
+    $ curl https://sh.rustup.rs -sSf | sh
+
+
+## Compile and run
 
 ```
-$ rustc src/main.rs
-$ ./main
+$ make run
 ```
 
-This creates `img.ppm`.
-
-Or, with [cargo](http://doc.crates.io/) (the Rust package manager)
-installed:
-
-```
-$ cargo run
-```
+This creates and opens the image.
