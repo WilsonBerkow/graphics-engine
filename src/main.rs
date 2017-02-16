@@ -18,46 +18,115 @@ fn main() {
         Ok(file) => file,
     };
     write_header(&mut file, WIDTH, HEIGHT);
-    let mut image = vec![vec![Color::rgb(0, 0, 0); WIDTH]; HEIGHT];
+    let mut image = vec![vec![Color::rgb(0, 0, 50); WIDTH]; HEIGHT];
 
-    let ch1 = Point::new(WIDTH * 3 / 8, CY); // negative charge
-    let ch2 = Point::new(WIDTH * 5 / 8, CY); // positive charge
-    let ch3 = Point::new(WIDTH * 7 / 8, HEIGHT / 4); // negative charge
-
-    for px in 0..WIDTH {
-        for py in 0..HEIGHT {
-            let p = Point::new(px, py);
-            let magnitude = 250000.0 * (-p.dist_to(ch1).powi(-2) + p.dist_to(ch2).powi(-2) - p.dist_to(ch3).powi(-2)).abs();
-            let lightness = if magnitude > 255.0 { 255 } else { magnitude as u8 };
-            // Another way of calculating lightness, which assumes we do not take abs() of
-            // magnitude, and discriminates on magnitude's sign:
-            // let strength = if magnitude > 127.0 { 127 } else if magnitude < -128.0 { -128 } else { magnitude as i8 };
-            // let lightness = ((strength as i16) + 128) as u8;
-            image[py][px] = Color::rgb(lightness, lightness, lightness);
-        }
+    for i in 0..(HEIGHT / 20) {
+        // down-right
+        line(&mut image, Line::xyxy(0, i * 1, WIDTH - 1, i * 19), Color::white());
+        // down-left
+        line(&mut image, Line::xyxy(WIDTH - 1, i * 1, 0, i * 19), Color::white());
+        // up-right
+        line(&mut image, Line::xyxy(0, HEIGHT - 1 - i * 1, WIDTH - 1, HEIGHT - 1 - i * 19), Color::white());
+        // up-left
+        line(&mut image, Line::xyxy(WIDTH - 1, HEIGHT - 1 - i * 1, 0, HEIGHT - 1 - i * 19), Color::white());
     }
-
-    // draw charge of ch1
-    fill_crect(&mut image, ch1.x + 1, ch1.y, 20, 4, Color::rgb(255, 0, 0));
-    // draw charge of ch2
-    fill_crect(&mut image, ch2.x + 1, ch2.y, 20, 4, Color::rgb(0, 0, 255));
-    fill_crect(&mut image, ch2.x + 1, ch2.y, 4, 20, Color::rgb(0, 0, 255));
-    // draw charge of ch3
-    fill_crect(&mut image, ch3.x + 1, ch3.y, 20, 4, Color::rgb(255, 0, 0));
 
     // write image to file
     write_image(&mut file, &image);
 }
 
-fn fill_crect(image: &mut Vec<Vec<Color>>, x: usize, y: usize, w: usize, h: usize, clr: Color) {
-    fill_rect(image, x - w / 2, y - h / 2, w, h, clr);
+fn plot(image: &mut Vec<Vec<Color>>, p: Point, clr: Color) {
+    image[p.y][p.x] = clr;
 }
 
-fn fill_rect(image: &mut Vec<Vec<Color>>, x: usize, y: usize, w: usize, h: usize, clr: Color) {
-    for px in x..x + w {
-        for py in y..y + h {
-            image[py][px] = clr;
+fn line(image: &mut Vec<Vec<Color>>, mut line: Line, clr: Color) {
+    let ltr = line.x0 < line.x1;
+    if !ltr {
+        line = line.reversed();
+    }
+    let more_up = line.y1 + line.x0 > line.x1 + line.y0; // true when dy > dx
+    if line.y1 > line.y0 {
+        if more_up {
+            bline_oct2(image, line, clr);
+        } else {
+            bline_oct1(image, line, clr);
         }
+    } else {
+        if more_up {
+            bline_oct7(image, line, clr);
+        } else {
+            bline_oct8(image, line, clr);
+        }
+    }
+}
+
+fn bline_oct1(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
+    let dx: i64 = line.dx();
+    let dy: i64 = line.dy();
+    let mut d: i64 = 2 * dy - dx;
+    let mut here: Point = line.startpoint();
+    while here.x <= line.x1 {
+        plot(image, here, clr);
+        here.x += 1;
+        d += dy;
+        if d > 0 {
+            here.y += 1;
+            d -= dx;
+        }
+    }
+}
+
+fn bline_oct2(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
+    let dx: i64 = line.dx();
+    let dy: i64 = line.dy();
+    let mut d: i64 = 2 * dy - dx;
+    let mut here: Point = line.startpoint();
+    let a = dx;
+    let b = -dy;
+    while here.y <= line.y1 {
+        plot(image, here, clr);
+        if d > 0 {
+            here.x += 1;
+            d += b;
+        }
+        here.y += 1;
+        d += a;
+    }
+}
+
+fn bline_oct7(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
+    let dx: i64 = line.dx();
+    let dy: i64 = line.dy();
+    let mut d: i64 = dy + 2 * dx;
+    let mut here: Point = line.startpoint();
+    let a = 2 * dy;
+    let b = -2 * dx;
+    while here.y >= line.y1 {
+        plot(image, here, clr);
+        if d > 0 {
+            here.x += 1;
+            d += a;
+        }
+        here.y -= 1;
+        d -= a;
+    }
+}
+
+fn bline_oct8(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
+    let dx: i64 = line.dx();
+    let dy: i64 = line.dy();
+    let mut d: i64 = 2 * dy + dx;
+    let mut here: Point = line.startpoint();
+    let a = 2 * dy;
+    let b = -2 * dx;
+    while here.x <= line.x1 {
+        plot(image, here, clr);
+        if d < 0 {
+            here.y -= 1;
+            d -= b;
+        }
+        here.x += 1;
+        d += a;
     }
 }
 
@@ -95,6 +164,10 @@ impl Color {
         Color::rgb(0, 0, 0)
     }
 
+    fn white() -> Color {
+        Color::rgb(255, 255, 255)
+    }
+
     fn fmt_ppm(&self) -> String {
         format!("{} {} {}\n", self.r, self.g, self.b)
     }
@@ -113,7 +186,7 @@ struct Point {
 }
 
 impl Point {
-    fn new(x: usize, y: usize) -> Point {
+    fn xy(x: usize, y: usize) -> Point {
         Point { x: x, y: y }
     }
 
@@ -123,5 +196,56 @@ impl Point {
         let x2 = p.x as f64;
         let y2 = p.y as f64;
         ((x1 - x2).powi(2) + (y1 - y2).powi(2)).sqrt()
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Line {
+    x0: usize,
+    y0: usize,
+    x1: usize,
+    y1: usize,
+}
+
+impl Line {
+    fn origin_to(x: usize, y: usize) -> Line {
+        Line { x0: 0, y0: 0, x1: x, y1: y }
+    }
+
+    fn from_to(p0: Point, p1: Point) -> Line {
+        Line { x0: p0.x, y0: p0.y, x1: p1.x, y1: p1.y }
+    }
+
+    fn xyxy(x0: usize, y0: usize, x1: usize, y1: usize) -> Line {
+        Line { x0: x0, y0: y0, x1: x1, y1: y1 }
+    }
+
+    fn from_by(x: usize, y: usize, dx: i64, dy: i64) -> Line {
+        Line {
+            x0: x,
+            y0: y,
+            x1: (x as i64 + dx) as usize,
+            y1: (y as i64 + dy) as usize,
+        }
+    }
+
+    fn reversed(self) -> Line {
+        Line::xyxy(self.x1, self.y1, self.x0, self.y0)
+    }
+
+    fn startpoint(self) -> Point {
+        Point::xy(self.x0, self.y0)
+    }
+
+    fn endpoint(self) -> Point {
+        Point::xy(self.x1, self.y1)
+    }
+
+    fn dx(self) -> i64 {
+        return self.x1 as i64 - self.x0 as i64;
+    }
+
+    fn dy(self) -> i64 {
+        return self.y1 as i64 - self.y0 as i64;
     }
 }
