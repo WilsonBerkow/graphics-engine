@@ -1,3 +1,5 @@
+compile: clean main
+
 main:
 	rustc src/main.rs
 
