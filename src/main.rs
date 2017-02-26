@@ -3,6 +3,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::prelude::*;
 
+mod matrix;
 mod point;
 mod line;
 mod render;
@@ -17,6 +18,23 @@ const CX: usize = WIDTH / 2;
 const CY: usize = HEIGHT / 2;
 
 fn main() {
+    test_matrix();
+}
+
+fn test_matrix() {
+    use matrix::Matrix;
+    let m = Matrix::new4x4(
+        1.0, 2.0, 3.0, 0.0,
+        4.0, 5.0, 6.0, 0.0,
+        7.0, 8.0, 9.0, 0.0,
+        0.0, 0.0, 0.0, 1.0);
+    println!("{}", &m);
+    println!("{}", &Matrix::identity());
+    println!("{}", &(&m * &Matrix::identity()));
+    println!("{}", &(&Matrix::identity() * &m));
+}
+
+fn generate_image<T>(f: T) where T: FnOnce(&mut Vec<Vec<Color>>) {
     let path = Path::new("img.ppm");
     let path_display = path.display(); // For safe string formatting
     let mut file = match File::create(&path) {
@@ -30,27 +48,38 @@ fn main() {
     write_header(&mut file, WIDTH, HEIGHT);
     let mut image = vec![vec![Color::rgb(0, 0, 50); WIDTH]; HEIGHT];
 
-    for i in 0..(HEIGHT / 20) {
-        // down-right
-        render::line(&mut image,
-             Line::xyxy(0, i * 1, WIDTH - 1, i * 19),
-             Color::white());
-        // down-left
-        render::line(&mut image,
-             Line::xyxy(WIDTH - 1, i * 1, 0, i * 19),
-             Color::white());
-        // up-right
-        render::line(&mut image,
-             Line::xyxy(0, HEIGHT - 1 - i * 1, WIDTH - 1, HEIGHT - 1 - i * 19),
-             Color::white());
-        // up-left
-        render::line(&mut image,
-             Line::xyxy(WIDTH - 1, HEIGHT - 1 - i * 1, 0, HEIGHT - 1 - i * 19),
-             Color::white());
-    }
+    f(&mut image);
 
     // write image to file
     write_image(&mut file, &image);
+}
+
+/// work2: Generate pretty line pattern using Bresenham's Line Algorithm (in line.rs).
+fn work2() {
+    generate_image(|image: &mut Vec<Vec<Color>>| {
+        for i in 0..(HEIGHT / 20) {
+            // down-right lines
+            render::line(
+                image,
+                Line::xyxy(0, i * 1, WIDTH - 1, i * 19),
+                Color::white());
+            // down-left lines
+            render::line(
+                image,
+                Line::xyxy(WIDTH - 1, i * 1, 0, i * 19),
+                Color::white());
+            // up-right lines
+            render::line(
+                image,
+                Line::xyxy(0, HEIGHT - 1 - i * 1, WIDTH - 1, HEIGHT - 1 - i * 19),
+                Color::white());
+            // up-left lines
+            render::line(
+                image,
+                Line::xyxy(WIDTH - 1, HEIGHT - 1 - i * 1, 0, HEIGHT - 1 - i * 19),
+                Color::white());
+        }
+    });
 }
 
 fn write_header(file: &mut File, width: usize, height: usize) {
