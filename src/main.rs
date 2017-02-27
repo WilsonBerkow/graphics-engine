@@ -8,6 +8,7 @@ mod point;
 mod line;
 mod render;
 
+use matrix::Matrix;
 use point::{Color, Point};
 use line::Line;
 
@@ -19,8 +20,10 @@ const CY: usize = HEIGHT / 2;
 
 fn main() {
     test_matrix();
+    test_edge_list();
 }
 
+// [Work 3] Print results of some Matrix computations
 fn test_matrix() {
     use matrix::Matrix;
     println!("GENERAL MATRIX MATH:\n");
@@ -38,10 +41,37 @@ fn test_matrix() {
     println!("{}", &dilate * &m);
     println!("{}", &dilate * &Matrix::identity());
     println!("============================");
+}
 
+// [Work 3] Draw same image from work 2, using Matrix for an edge list.
+fn test_edge_list() {
     println!("EDGE MATRIX:\n");
-    let edges = Matrix::empty();
-    edges.push_edge(Matrix::origin(), [100.0, 20.0, 0.0, 1.0]);
+    let mut edges = Matrix::empty();
+    for i in 0..(HEIGHT / 20) {
+        // down-right lines
+        edges.push_edge(
+            [0.0, i as f64, 0.0, 1.0],
+            [(WIDTH - 1) as f64, (i * 19) as f64, 0.0, 1.0]);
+        // down-left lines
+        edges.push_edge(
+            [(WIDTH - 1) as f64, i as f64, 0.0, 1.0],
+            [0.0, (i * 19) as f64, 0.0, 1.0]);
+            //Line::xyxy(WIDTH - 1, i * 1, 0, i * 19),
+        // up-right lines
+        edges.push_edge(
+            [0.0, (HEIGHT - 1 - i) as f64, 0.0, 1.0],
+            [(WIDTH - 1) as f64, (HEIGHT - 1 - i * 19) as f64, 0.0, 1.0]);
+            //Line::xyxy(0, HEIGHT - 1 - i * 1, WIDTH - 1, HEIGHT - 1 - i * 19),
+        // up-left lines
+        edges.push_edge(
+            [(WIDTH - 1) as f64, (HEIGHT - 1 - i) as f64, 0.0, 1.0],
+            [0.0, (HEIGHT - 1 - i * 19) as f64, 0.0, 1.0]);
+            //Line::xyxy(WIDTH - 1, HEIGHT - 1 - i * 1, 0, HEIGHT - 1 - i * 19),
+    }
+    println!("Edge list:\n{}", edges);
+    generate_image(|image| {
+        render::edge_list(image, edges);
+    });
 }
 
 fn generate_image<T>(f: T) where T: FnOnce(&mut Vec<Vec<Color>>) {

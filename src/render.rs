@@ -1,9 +1,29 @@
+use matrix::Matrix;
 use point::Point;
 use point::Color;
 use line::Line;
 
 pub fn plot(image: &mut Vec<Vec<Color>>, p: Point, clr: Color) {
     image[p.y][p.x] = clr;
+}
+
+/// Draw edges in an edge list matrix. Each successive pair of
+/// elements are considered the endpoints of a distinct edge.
+///
+/// All edges are drawn in white.
+pub fn edge_list(image: &mut Vec<Vec<Color>>, edges: Matrix) {
+    let mut c = 0;
+    while c + 1 < edges.width() {
+        let p = edges.col(c);
+        let q = edges.col(c + 1);
+        let l = Line::xyxy(
+            p[0] as usize,
+            p[1] as usize,
+            q[0] as usize,
+            q[1] as usize);
+        line(image, l, Color::white());
+        c += 2;
+    }
 }
 
 pub fn line(image: &mut Vec<Vec<Color>>, mut line: Line, clr: Color) {
