@@ -5,6 +5,8 @@ main:
 
 run: main
 	./main
+	convert img.ppm img.png
+	display img.png
 
 clean:
 	rm -f main

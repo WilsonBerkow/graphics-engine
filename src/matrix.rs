@@ -8,10 +8,15 @@ pub struct Matrix {
     v: Vec<[f64; 4]>
 }
 
+/// All operations using indexes are 0-based.
 impl Matrix {
     /// Make a 4xN matrix.
     pub fn new(columns: Vec<[f64; 4]>) -> Matrix {
         Matrix { v: columns }
+    }
+
+    pub fn with_capacity(cols: usize, val: f64) -> Matrix {
+        Matrix::new(vec![[val; 4]; cols])
     }
 
     /// Make an empty (4x0) matrix.
@@ -41,6 +46,15 @@ impl Matrix {
         }
     }
 
+    /// Make a 4x4 identity matrix
+    pub fn identity() -> Matrix {
+        Matrix::new(vec![
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0]])
+    }
+
     /// Make a 4x4 dilation matrix dilating by `s` in
     /// x, y, and z.
     pub fn dilation(s: f64) -> Matrix {
@@ -57,15 +71,28 @@ impl Matrix {
             0.0, 0.0, 0.0, 1.0)
     }
 
-    /// Make a 4x4 identity matrix
-    pub fn identity() -> Matrix {
-        Matrix::new(vec![
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0]])
+    /// Make a 4x4 rotation matrix for a rotation of `angle` radians
+    /// about the z axis.
+    pub fn rotation_about_z(angle: f64) -> Matrix {
+        let cos = f64::cos(angle);
+        let sin = f64::sin(angle);
+        Matrix::new4x4(
+            cos, -sin, 0.0, 0.0,
+            sin, cos, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0)
     }
 
+    /// Make a 4x4 shear matrix for a shear in the XY plane.
+    pub fn shear_2d(dx: f64, dy: f64) -> Matrix {
+        Matrix::new4x4(
+            1.0, dx, 0.0, 0.0,
+            dy, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0)
+    }
+
+    /// Get an array of the elements in column `colnum`.
     pub fn col(&self, colnum: usize) -> [f64; 4] {
         let width = self.v.len();
         if colnum > width {
@@ -74,6 +101,7 @@ impl Matrix {
         self.v[colnum]
     }
 
+    /// Get a Vec of the elements in column `colnum`.
     pub fn col_vec(&self, colnum: usize) -> Vec<f64> {
         let width = self.v.len();
         if colnum > width {
@@ -101,6 +129,7 @@ impl Matrix {
         self.push_col(colB);
     }
 
+    /// Get a vector of entries in row `rownum`.
     pub fn row(&self, rownum: usize) -> Vec<f64> {
         if rownum > 3 {
             panic!("Attempted to get row {} of a matrix of height 4", rownum);
@@ -112,15 +141,18 @@ impl Matrix {
         items
     }
 
+    /// Get the entry at row `row` and column `col`.
     pub fn get(&self, row: usize, col: usize) -> f64 {
         self.v[col][row]
     }
 
 
+    /// Set the entry at row `row` and column `col` to `val`.
     pub fn set(&mut self, row: usize, col: usize, val: f64) {
         self.v[col][row] = val;
     }
 
+    /// Get the width of the matrix.
     pub fn width(&self) -> usize {
         self.v.len()
     }
@@ -182,7 +214,7 @@ impl<'a, 'b> Sub<&'a Matrix> for &'b Matrix {
 impl<'a, 'b> Mul<&'a Matrix> for &'b Matrix {
     type Output = Matrix;
     fn mul(self, rhs: &Matrix) -> Matrix {
-        let mut m = Matrix::new(vec![[0.0; 4]; 4]);
+        let mut m = Matrix::with_capacity(rhs.width(), 0.0);
         for i in 0..4 {
             for j in 0..rhs.width() {
                 let val: f64 = dot_product_refs(self.row(i).iter(), rhs.col(j).iter());
@@ -210,7 +242,7 @@ fn dot_product<T: Iterator<Item=f64>, U: Iterator<Item=f64>>(v: T, u: U) -> f64 
 }
 
 fn scale_matrix(scalar: f64, mat: &Matrix) -> Matrix {
-    let mut result = Matrix::new(vec![]);
+    let mut result = Matrix::with_capacity(mat.width(), 0.0);
     for row in 0..4 {
         for col in 0..mat.width() {
             result.set(row, col, scalar * mat.get(row, col));
