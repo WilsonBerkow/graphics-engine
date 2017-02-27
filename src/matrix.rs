@@ -9,10 +9,23 @@ pub struct Matrix {
 }
 
 impl Matrix {
+    /// Make a 4xN matrix.
     pub fn new(columns: Vec<[f64; 4]>) -> Matrix {
         Matrix { v: columns }
     }
 
+    /// Make an empty (4x0) matrix.
+    pub fn empty() -> Matrix {
+        Matrix::new(vec![])
+    }
+
+    /// Make the column matrix representing the origin.
+    pub fn origin() -> Matrix {
+        Matrix::new(vec![[0.0, 0.0, 0.0, 1.0]])
+    }
+
+    /// Make a 4x4 matrix given each cell value (listed
+    /// row-by-row).
     pub fn new4x4(
         a: f64, b: f64, c: f64, d: f64,
         e: f64, f: f64, g: f64, h: f64,
@@ -28,7 +41,23 @@ impl Matrix {
         }
     }
 
-    /// Create a 4x4 identity matrix
+    /// Make a 4x4 dilation matrix dilating by `s` in
+    /// x, y, and z.
+    pub fn dilation(s: f64) -> Matrix {
+        s * &Matrix::identity()
+    }
+
+    /// Make a 4x4 dilation matrix dilating by `sx` in
+    /// x, `sy`, in y, and `sz` in z.
+    pub fn dilation_xyz(sx: f64, sy: f64, sz: f64) -> Matrix {
+        Matrix::new4x4(
+            sx, 0.0, 0.0, 0.0,
+            0.0, sy, 0.0, 0.0,
+            0.0, 0.0, sz, 0.0,
+            0.0, 0.0, 0.0, 1.0)
+    }
+
+    /// Make a 4x4 identity matrix
     pub fn identity() -> Matrix {
         Matrix::new(vec![
                     [1.0, 0.0, 0.0, 0.0],
@@ -52,6 +81,24 @@ impl Matrix {
         }
         let col = &self.v[colnum];
         vec![col[0], col[1], col[2], col[3]] // TODO: Into<Vec<T>>?
+    }
+
+    /// Push a column to the right side of `self`.
+    pub fn push_col(&mut self, col: [f64; 4]) {
+        self.v.push(col)
+    }
+
+    /// Push each column of `m` to `self`
+    pub fn append(&mut self, m: Matrix) {
+        for col in 0..m.width() {
+            self.push_col(m.col(col));
+        }
+    }
+
+    /// Push an edge, i.e. two points, to `self` (think of `self` as an edge list).
+    pub fn push_edge(&mut self, colA: [f64; 4], colB: [f64; 4]) {
+        self.push_col(colA);
+        self.push_col(colB);
     }
 
     pub fn row(&self, rownum: usize) -> Vec<f64> {
@@ -79,6 +126,7 @@ impl Matrix {
     }
 }
 
+// ref plus ref
 impl<'a, 'b> Add<&'a Matrix> for &'b Matrix {
     type Output = Matrix;
     /// Add two matrices, assuming they are of the same width
@@ -94,6 +142,34 @@ impl<'a, 'b> Add<&'a Matrix> for &'b Matrix {
     }
 }
 
+// owned plus ref
+impl<'a> Add<&'a Matrix> for Matrix {
+    type Output = Matrix;
+    /// Add two matrices, assuming they are of the same width
+    fn add(self, rhs: &Matrix) -> Matrix {
+        &self + rhs
+    }
+}
+
+// ref plus owned
+impl<'a> Add<Matrix> for &'a Matrix {
+    type Output = Matrix;
+    /// Add two matrices, assuming they are of the same width
+    fn add(self, rhs: Matrix) -> Matrix {
+        self + &rhs
+    }
+}
+
+// owned plus owned
+impl Add<Matrix> for Matrix {
+    type Output = Matrix;
+    /// Add two matrices, assuming they are of the same width
+    fn add(self, rhs: Matrix) -> Matrix {
+        &self + &rhs
+    }
+}
+
+// TODO: add owned version of impls for Sub and Mul (as done with Add above)
 impl<'a, 'b> Sub<&'a Matrix> for &'b Matrix {
     type Output = Matrix;
     /// Add two matrices, assuming they are of the same width
@@ -157,7 +233,7 @@ impl<'a> Mul<&'a Matrix> for f64 {
     }
 }
 
-impl<'a> fmt::Display for &'a Matrix {
+impl fmt::Display for Matrix {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = String::from("");
         for row in 0..4 {

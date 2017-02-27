@@ -23,15 +23,25 @@ fn main() {
 
 fn test_matrix() {
     use matrix::Matrix;
+    println!("GENERAL MATRIX MATH:\n");
     let m = Matrix::new4x4(
         1.0, 2.0, 3.0, 0.0,
         4.0, 5.0, 6.0, 0.0,
         7.0, 8.0, 9.0, 0.0,
         0.0, 0.0, 0.0, 1.0);
-    println!("{}", &m);
-    println!("{}", &Matrix::identity());
-    println!("{}", &(&m * &Matrix::identity()));
-    println!("{}", &(&Matrix::identity() * &m));
+    println!("{}", m);
+    println!("{}", Matrix::identity());
+    println!("{}", &m * &Matrix::identity());
+    println!("{}", &Matrix::identity() * &m);
+    let dilate = Matrix::dilation_xyz(1.0, 3.0, 5.0);
+    println!("{}", dilate);
+    println!("{}", &dilate * &m);
+    println!("{}", &dilate * &Matrix::identity());
+    println!("============================");
+
+    println!("EDGE MATRIX:\n");
+    let edges = Matrix::empty();
+    edges.push_edge(Matrix::origin(), [100.0, 20.0, 0.0, 1.0]);
 }
 
 fn generate_image<T>(f: T) where T: FnOnce(&mut Vec<Vec<Color>>) {
