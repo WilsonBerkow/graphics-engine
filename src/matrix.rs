@@ -39,7 +39,7 @@ impl Matrix {
         Matrix {
             v: vec![
                 [a, e, i, m],
-                [b, f, j, m],
+                [b, f, j, n],
                 [c, g, k, o],
                 [d, h, l, p]
             ]
