@@ -5,14 +5,15 @@ use std::iter::Iterator;
 /// 4xN matrices
 #[derive(Clone)]
 pub struct Matrix {
-    v: Vec<[f64; 4]>
+    /// Vec of the columns of the matrix
+    cols: Vec<[f64; 4]>
 }
 
 /// All operations using indexes are 0-based.
 impl Matrix {
     /// Make a 4xN matrix.
     pub fn new(columns: Vec<[f64; 4]>) -> Matrix {
-        Matrix { v: columns }
+        Matrix { cols: columns }
     }
 
     pub fn with_capacity(cols: usize, val: f64) -> Matrix {
@@ -29,15 +30,14 @@ impl Matrix {
         Matrix::new(vec![[0.0, 0.0, 0.0, 1.0]])
     }
 
-    /// Make a 4x4 matrix given each cell value (listed
-    /// row-by-row).
+    /// Make a 4x4 matrix given each cell value (parameters listed row-by-row).
     pub fn new4x4(
         a: f64, b: f64, c: f64, d: f64,
         e: f64, f: f64, g: f64, h: f64,
         i: f64, j: f64, k: f64, l: f64,
         m: f64, n: f64, o: f64, p: f64) -> Matrix {
         Matrix {
-            v: vec![
+            cols: vec![
                 [a, e, i, m],
                 [b, f, j, n],
                 [c, g, k, o],
@@ -94,26 +94,26 @@ impl Matrix {
 
     /// Get an array of the elements in column `colnum`.
     pub fn col(&self, colnum: usize) -> [f64; 4] {
-        let width = self.v.len();
+        let width = self.cols.len();
         if colnum > width {
             panic!("Attempted to get column {} of a matrix of width {}", colnum, width);
         }
-        self.v[colnum]
+        self.cols[colnum]
     }
 
     /// Get a Vec of the elements in column `colnum`.
     pub fn col_vec(&self, colnum: usize) -> Vec<f64> {
-        let width = self.v.len();
+        let width = self.cols.len();
         if colnum > width {
             panic!("Attempted to get column {} of a matrix of width {}", colnum, width);
         }
-        let col = &self.v[colnum];
+        let col = &self.cols[colnum];
         vec![col[0], col[1], col[2], col[3]] // TODO: Into<Vec<T>>?
     }
 
     /// Push a column to the right side of `self`.
     pub fn push_col(&mut self, col: [f64; 4]) {
-        self.v.push(col)
+        self.cols.push(col)
     }
 
     /// Push each column of `m` to `self`
@@ -135,7 +135,7 @@ impl Matrix {
             panic!("Attempted to get row {} of a matrix of height 4", rownum);
         }
         let mut items = vec![];
-        for column in &self.v {
+        for column in &self.cols {
             items.push(column[rownum]);
         }
         items
@@ -143,18 +143,18 @@ impl Matrix {
 
     /// Get the entry at row `row` and column `col`.
     pub fn get(&self, row: usize, col: usize) -> f64 {
-        self.v[col][row]
+        self.cols[col][row]
     }
 
 
     /// Set the entry at row `row` and column `col` to `val`.
     pub fn set(&mut self, row: usize, col: usize, val: f64) {
-        self.v[col][row] = val;
+        self.cols[col][row] = val;
     }
 
     /// Get the width of the matrix.
     pub fn width(&self) -> usize {
-        self.v.len()
+        self.cols.len()
     }
 }
 
@@ -163,14 +163,14 @@ impl<'a, 'b> Add<&'a Matrix> for &'b Matrix {
     type Output = Matrix;
     /// Add two matrices, assuming they are of the same width
     fn add(self, rhs: &Matrix) -> Matrix {
-        let mut v = self.v.clone();
-        for (vcol, rcol) in v.iter_mut().zip(rhs.v.iter()) {
+        let mut cols = self.cols.clone();
+        for (vcol, rcol) in cols.iter_mut().zip(rhs.cols.iter()) {
             vcol[0] += rcol[0];
             vcol[1] += rcol[1];
             vcol[2] += rcol[2];
             vcol[3] += rcol[3];
         }
-        Matrix::new(v)
+        Matrix::new(cols)
     }
 }
 
