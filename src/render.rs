@@ -47,8 +47,9 @@ pub fn line(image: &mut Vec<Vec<Color>>, mut line: Line, clr: Color) {
 }
 
 fn within_screen(p: Point, image: &mut Vec<Vec<Color>>) -> bool {
-    let within_y = p.y >= 0 && p.y < image.len();
-    let within_x = image.len() > 0 && p.x >= 0 && p.x < image[0].len();
+    // Values are unsigned, so >= 0 is redundant
+    let within_y = p.y < image.len();
+    let within_x = image.len() > 0 && p.x < image[0].len();
     within_y && within_x
 }
 
