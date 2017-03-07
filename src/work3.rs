@@ -50,8 +50,8 @@ pub fn test_edge_list() {
             [0.0, (HEIGHT - 1 - i * 19) as f64, 0.0, 1.0]);
     }
     edges = &Matrix::dilation(0.5) * &edges;
-    edges = &Matrix::shear_2d(0.3, 0.8) * &edges;
-    edges = &Matrix::rotation_about_z(0.1) * &edges;
+    edges = &Matrix::translation(100.0, 200.0, 0.0) * &edges;
+    edges = &Matrix::rotation_about_z(-0.2) * &edges;
     ppm::make_ppm(|image| {
         render::edge_list(image, edges);
     });

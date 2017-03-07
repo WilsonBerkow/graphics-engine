@@ -55,6 +55,14 @@ impl Matrix {
                     [0.0, 0.0, 0.0, 1.0]])
     }
 
+    pub fn translation(dx: f64, dy: f64, dz: f64) -> Matrix {
+        Matrix::new4x4(
+            1.0, 0.0, 0.0, dx,
+            0.0, 1.0, 0.0, dy,
+            0.0, 0.0, 1.0, dz,
+            0.0, 0.0, 0.0, 1.0)
+    }
+
     /// Make a 4x4 dilation matrix dilating by `s` in
     /// x, y, and z.
     pub fn dilation(s: f64) -> Matrix {
