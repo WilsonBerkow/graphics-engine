@@ -27,19 +27,18 @@ pub fn edge_list(image: &mut Vec<Vec<Color>>, edges: Matrix) {
 }
 
 pub fn line(image: &mut Vec<Vec<Color>>, mut line: Line, clr: Color) {
-    let ltr = line.x0 < line.x1;
-    if !ltr {
+    if line.x0 > line.x1 {
         line = line.reversed();
     }
-    let more_up = line.y1 + line.x0 > line.x1 + line.y0; // true when dy > dx
+    let more_vertical = line.dy().abs() > line.dx().abs();
     if line.y1 > line.y0 {
-        if more_up {
+        if more_vertical {
             bline_oct2(image, line, clr);
         } else {
             bline_oct1(image, line, clr);
         }
     } else {
-        if more_up {
+        if more_vertical {
             bline_oct7(image, line, clr);
         } else {
             bline_oct8(image, line, clr);
@@ -47,12 +46,18 @@ pub fn line(image: &mut Vec<Vec<Color>>, mut line: Line, clr: Color) {
     }
 }
 
+fn within_screen(p: Point, image: &mut Vec<Vec<Color>>) -> bool {
+    let within_y = p.y >= 0 && p.y < image.len();
+    let within_x = image.len() > 0 && p.x >= 0 && p.x < image[0].len();
+    within_y && within_x
+}
+
 fn bline_oct1(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
     let dx: i64 = line.dx();
     let dy: i64 = line.dy();
     let mut d: i64 = 2 * dy - dx;
     let mut here: Point = line.startpoint();
-    while here.x <= line.x1 {
+    while here.x <= line.x1 && within_screen(here, image) {
         plot(image, here, clr);
         here.x += 1;
         d += dy;
@@ -70,7 +75,7 @@ fn bline_oct2(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
     let mut here: Point = line.startpoint();
     let a = dx;
     let b = -dy;
-    while here.y <= line.y1 {
+    while here.y <= line.y1 && within_screen(here, image) {
         plot(image, here, clr);
         if d > 0 {
             here.x += 1;
@@ -81,21 +86,25 @@ fn bline_oct2(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
     }
 }
 
-fn bline_oct7(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
+pub fn bline_oct7(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
     let dx: i64 = line.dx();
     let dy: i64 = line.dy();
     let mut d: i64 = dy + 2 * dx;
     let mut here: Point = line.startpoint();
-    let a = 2 * dy;
     let b = -2 * dx;
-    while here.y >= line.y1 {
+    let a = 2 * dy;
+    while here.y >= line.y1 && within_screen(here, image) {
         plot(image, here, clr);
         if d > 0 {
             here.x += 1;
             d += a;
         }
+        // Special check for y == 0 to protect from overflow error in non-release binaries
+        if here.y == 0 {
+            break;
+        }
         here.y -= 1;
-        d -= a;
+        d -= b;
     }
 }
 
@@ -109,6 +118,10 @@ fn bline_oct8(image: &mut Vec<Vec<Color>>, line: Line, clr: Color) {
     while here.x <= line.x1 {
         plot(image, here, clr);
         if d < 0 {
+            // Special check for y == 0 to protect from overflow error in non-release binaries
+            if here.y == 0 {
+                break;
+            }
             here.y -= 1;
             d -= b;
         }
