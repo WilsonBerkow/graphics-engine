@@ -124,9 +124,9 @@ impl Matrix {
     }
 
     /// Push an edge, i.e. two points, to `self` (think of `self` as an edge list).
-    pub fn push_edge(&mut self, colA: [f64; 4], colB: [f64; 4]) {
-        self.push_col(colA);
-        self.push_col(colB);
+    pub fn push_edge(&mut self, pt0: [f64; 4], pt1: [f64; 4]) {
+        self.push_col(pt0);
+        self.push_col(pt1);
     }
 
     /// Get a vector of entries in row `rownum`.
