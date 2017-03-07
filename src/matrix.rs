@@ -55,6 +55,7 @@ impl Matrix {
                     [0.0, 0.0, 0.0, 1.0]])
     }
 
+    /// Make a translation matrix for translation by (dx, dy, dz)
     pub fn translation(dx: f64, dy: f64, dz: f64) -> Matrix {
         Matrix::new4x4(
             1.0, 0.0, 0.0, dx,
@@ -76,6 +77,26 @@ impl Matrix {
             sx, 0.0, 0.0, 0.0,
             0.0, sy, 0.0, 0.0,
             0.0, 0.0, sz, 0.0,
+            0.0, 0.0, 0.0, 1.0)
+    }
+
+    pub fn rotation_about_x(angle: f64) -> Matrix {
+        let cos = f64::cos(angle);
+        let sin = f64::sin(angle);
+        Matrix::new4x4(
+            1.0, 0.0, 0.0, 0.0,
+            0.0, cos, -sin, 0.0,
+            0.0, -sin, cos, 0.0,
+            0.0, 0.0, 0.0, 1.0)
+    }
+
+    pub fn rotation_about_y(angle: f64) -> Matrix {
+        let cos = f64::cos(angle);
+        let sin = f64::sin(angle);
+        Matrix::new4x4(
+            cos, 0.0, -sin, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            -sin, 0.0, cos, 0.0,
             0.0, 0.0, 0.0, 1.0)
     }
 

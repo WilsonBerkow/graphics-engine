@@ -52,6 +52,8 @@ pub fn test_edge_list() {
     edges = &Matrix::dilation(0.5) * &edges;
     edges = &Matrix::translation(100.0, 200.0, 0.0) * &edges;
     edges = &Matrix::rotation_about_z(-0.2) * &edges;
+    edges = &Matrix::rotation_about_y(0.7) * &edges;
+    edges = &Matrix::rotation_about_x(0.7) * &edges;
     ppm::make_ppm(|image| {
         render::edge_list(image, edges);
     });
