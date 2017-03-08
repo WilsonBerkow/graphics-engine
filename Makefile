@@ -1,7 +1,7 @@
 compile: clean main
 
 main:
-	rustc -A dead_code src/main.rs
+	rustc src/main.rs
 
 run: main
 	./main
