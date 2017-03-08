@@ -37,7 +37,7 @@ pub fn run_script(toks: Vec<Token>) {
                 edges.push_edge(
                     [x0, y0, z0, 1.0],
                     [x1, y1, z1, 1.0]);
-                i += 6;
+                i += 7;
             },
 
             Token::Cmd(Command::Ident) => {
@@ -50,7 +50,7 @@ pub fn run_script(toks: Vec<Token>) {
                 let sy = unwrap_num(&toks[i + 2]);
                 let sz = unwrap_num(&toks[i + 3]);
                 transform = &Matrix::dilation_xyz(sx, sy, sz) * &transform;
-                i += 3;
+                i += 4;
             },
 
             Token::Cmd(Command::Move) => {
@@ -58,7 +58,7 @@ pub fn run_script(toks: Vec<Token>) {
                 let dy = unwrap_num(&toks[i + 2]);
                 let dz = unwrap_num(&toks[i + 3]);
                 transform = &Matrix::translation_xyz(dx, dy, dz) * &transform;
-                i += 3;
+                i += 4;
             },
 
             Token::Cmd(Command::Rotate) => {
@@ -92,7 +92,7 @@ pub fn run_script(toks: Vec<Token>) {
                     use point::Color;
                     use ppm;
                     use render;
-                    let mut image = vec![vec![Color::rgb(0, 0, 0); WIDTH]; HEIGHT];
+                    let mut image = vec![vec![Color::black(); WIDTH]; HEIGHT];
                     render::edge_list(&mut image, &edges);
                     ppm::save_png(&image, name);
                     i += 2;
@@ -100,7 +100,9 @@ pub fn run_script(toks: Vec<Token>) {
                     panic!("Expected filename; found {:?}", &toks[i + 1]);
                 }
             },
-            _ => {i += 1;}
+            ref t => {
+                panic!("Unexpected token {:?} (token number {})", t, i);
+            }
         }
     }
 }
