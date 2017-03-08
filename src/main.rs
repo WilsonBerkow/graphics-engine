@@ -140,7 +140,11 @@ fn run_script(toks: Vec<Token>) {
                 i += 1;
             },
             Token::Cmd(Command::Display) => {
-                // TODO
+                use point::Color;
+                use ppm;
+                let mut image = vec![vec![Color::rgb(0, 0, 0); WIDTH]; HEIGHT];
+                render::edge_list(&mut image, &edges);
+                ppm::display_image(&image);
                 i += 1;
             },
             Token::Cmd(Command::Save) => {
@@ -150,7 +154,7 @@ fn run_script(toks: Vec<Token>) {
                     use render;
                     let mut image = vec![vec![Color::rgb(0, 0, 0); WIDTH]; HEIGHT];
                     render::edge_list(&mut image, &edges);
-                    ppm::save_ppm(&image, name);
+                    ppm::save_png(&image, name);
                     i += 2;
                 } else {
                     panic!("Expected filename; found {:?}", &toks[i + 1]);
