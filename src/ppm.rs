@@ -42,7 +42,8 @@ pub fn save_png(image: &Vec<Vec<Color>>, filename: &str) {
     println!("Execution of `rm .temp.ppm` exited with status: {}", status1);
 }
 
-pub fn display(filename: &str) {
+#[allow(dead_code)]
+pub fn display_file(filename: &str) {
     let status = Command::new("display")
         .arg(filename)
         .status().ok().unwrap();

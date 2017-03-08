@@ -5,6 +5,7 @@ use render;
 use consts::*;
 
 /// work2: Generate pretty line pattern using Bresenham's Line Algorithm (in line.rs).
+#[allow(dead_code)]
 pub fn run() {
     ppm::make_ppm(|image: &mut Vec<Vec<Color>>| {
         for i in 0..(IHEIGHT / 20) {

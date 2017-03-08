@@ -142,7 +142,7 @@ fn run_script(toks: Vec<Token>) {
             Token::Cmd(Command::Display) => {
                 use point::Color;
                 use ppm;
-                let mut image = vec![vec![Color::rgb(0, 0, 0); WIDTH]; HEIGHT];
+                let mut image = vec![vec![Color::black(); WIDTH]; HEIGHT];
                 render::edge_list(&mut image, &edges);
                 ppm::display_image(&image);
                 i += 1;

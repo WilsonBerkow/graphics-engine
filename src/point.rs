@@ -42,13 +42,5 @@ impl Point {
     pub fn xy(x: i64, y: i64) -> Point {
         Point { x: x, y: y }
     }
-
-    pub fn dist_to(&self, p: Point) -> f64 {
-        let x1 = self.x as f64;
-        let y1 = self.y as f64;
-        let x2 = p.x as f64;
-        let y2 = p.y as f64;
-        ((x1 - x2).powi(2) + (y1 - y2).powi(2)).sqrt()
-    }
 }
 

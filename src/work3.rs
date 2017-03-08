@@ -3,6 +3,7 @@ use render;
 use ppm;
 use consts::*;
 
+#[allow(dead_code)]
 pub fn run() {
     test_matrix();
     test_edge_list();

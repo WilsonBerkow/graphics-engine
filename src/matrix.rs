@@ -262,14 +262,6 @@ fn dot_product_refs<'a, 'b, T: Iterator<Item=&'a f64>, U: Iterator<Item=&'b f64>
     sum
 }
 
-fn dot_product<T: Iterator<Item=f64>, U: Iterator<Item=f64>>(v: T, u: U) -> f64 {
-    let mut sum = 0.0;
-    for (a, b) in v.zip(u) {
-        sum += a * b;
-    }
-    sum
-}
-
 fn scale_matrix(scalar: f64, mat: &Matrix) -> Matrix {
     let mut result = Matrix::with_capacity(mat.width(), 0.0);
     for row in 0..4 {
