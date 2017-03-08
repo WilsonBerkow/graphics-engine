@@ -9,9 +9,11 @@ use consts::*;
 pub fn make_ppm<T>(f: T) where T: FnOnce(&mut Vec<Vec<Color>>) {
     let mut image = vec![vec![Color::rgb(0, 0, 50); WIDTH]; HEIGHT];
     f(&mut image);
-    let image = image; // No longer mutable
+    save_ppm(&image, "img.ppm");
+}
 
-    let path = Path::new("img.ppm");
+pub fn save_ppm(image: &Vec<Vec<Color>>, filename: &str) {
+    let path = Path::new(filename);
     let path_display = path.display(); // For safe string formatting
     let mut file = match File::create(&path) {
         Err(reason) => {
@@ -22,10 +24,9 @@ pub fn make_ppm<T>(f: T) where T: FnOnce(&mut Vec<Vec<Color>>) {
         Ok(file) => file,
     };
     write_header(&mut file, WIDTH, HEIGHT);
-
-    // write image to file
     write_image(&mut file, &image);
 }
+
 
 pub fn write_header(file: &mut File, width: usize, height: usize) {
     if let Err(reason) = write!(file, "P3\n{} {} 255\n", width, height) {

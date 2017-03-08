@@ -11,7 +11,7 @@ pub fn plot(image: &mut Vec<Vec<Color>>, p: Point, clr: Color) {
 /// elements are considered the endpoints of a distinct edge.
 ///
 /// All edges are drawn in white.
-pub fn edge_list(image: &mut Vec<Vec<Color>>, edges: Matrix) {
+pub fn edge_list(image: &mut Vec<Vec<Color>>, edges: &Matrix) {
     let mut c = 0;
     while c + 1 < edges.width() {
         let p = edges.col(c);

@@ -56,7 +56,7 @@ impl Matrix {
     }
 
     /// Make a translation matrix for translation by (dx, dy, dz)
-    pub fn translation(dx: f64, dy: f64, dz: f64) -> Matrix {
+    pub fn translation_xyz(dx: f64, dy: f64, dz: f64) -> Matrix {
         Matrix::new4x4(
             1.0, 0.0, 0.0, dx,
             0.0, 1.0, 0.0, dy,
