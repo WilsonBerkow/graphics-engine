@@ -34,12 +34,12 @@ impl Display for Color {
 
 #[derive(Clone, Copy)]
 pub struct Point {
-    pub x: usize,
-    pub y: usize,
+    pub x: i64,
+    pub y: i64,
 }
 
 impl Point {
-    pub fn xy(x: usize, y: usize) -> Point {
+    pub fn xy(x: i64, y: i64) -> Point {
         Point { x: x, y: y }
     }
 

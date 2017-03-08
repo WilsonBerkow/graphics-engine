@@ -2,14 +2,14 @@ use point::Point;
 
 #[derive(Clone, Copy)]
 pub struct Line {
-    pub x0: usize,
-    pub y0: usize,
-    pub x1: usize,
-    pub y1: usize,
+    pub x0: i64,
+    pub y0: i64,
+    pub x1: i64,
+    pub y1: i64,
 }
 
 impl Line {
-    pub fn origin_to(x: usize, y: usize) -> Line {
+    pub fn origin_to(x: i64, y: i64) -> Line {
         Line { x0: 0, y0: 0, x1: x, y1: y }
     }
 
@@ -17,17 +17,8 @@ impl Line {
         Line { x0: p0.x, y0: p0.y, x1: p1.x, y1: p1.y }
     }
 
-    pub fn xyxy(x0: usize, y0: usize, x1: usize, y1: usize) -> Line {
+    pub fn xyxy(x0: i64, y0: i64, x1: i64, y1: i64) -> Line {
         Line { x0: x0, y0: y0, x1: x1, y1: y1 }
-    }
-
-    pub fn from_by(x: usize, y: usize, dx: i64, dy: i64) -> Line {
-        Line {
-            x0: x,
-            y0: y,
-            x1: (x as i64 + dx) as usize,
-            y1: (y as i64 + dy) as usize,
-        }
     }
 
     pub fn reversed(self) -> Line {
@@ -43,11 +34,11 @@ impl Line {
     }
 
     pub fn dx(self) -> i64 {
-        return self.x1 as i64 - self.x0 as i64;
+        return self.x1 - self.x0;
     }
 
     pub fn dy(self) -> i64 {
-        return self.y1 as i64 - self.y0 as i64;
+        return self.y1 - self.y0;
     }
 }
 
