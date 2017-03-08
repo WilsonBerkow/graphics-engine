@@ -1,4 +1,4 @@
-# work1
+# work3 -- transform
 
 ## Install `rustc`
 
@@ -13,5 +13,3 @@ run the following to install rust:
 ```
 $ make run
 ```
-
-This creates and opens the image.
