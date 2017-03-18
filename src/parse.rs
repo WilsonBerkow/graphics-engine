@@ -1,6 +1,9 @@
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
     Line,
+    Circle,
+    Hermite,
+    Bezier,
     Ident,
     Scale,
     Move,
@@ -36,6 +39,9 @@ pub fn parse_tokens(s: &str) -> Vec<Token> {
 pub fn parse_token(s: &str) -> Token {
     match s {
         "line" => Token::Cmd(Command::Line),
+        "circle" => Token::Cmd(Command::Circle),
+        "hermite" => Token::Cmd(Command::Hermite),
+        "bezier" => Token::Cmd(Command::Bezier),
         "ident" => Token::Cmd(Command::Ident),
         "scale" => Token::Cmd(Command::Scale),
         "move" => Token::Cmd(Command::Move),

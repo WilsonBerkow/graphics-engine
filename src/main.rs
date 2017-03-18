@@ -5,6 +5,9 @@ mod point;
 
 mod line;
 
+/// Add curves to an edge matrix
+mod curve;
+
 /// Render lines to an in-memory representation of the pixels of the screen
 mod render;
 
@@ -38,9 +41,8 @@ fn main() {
             let mut s = String::from("");
             match file.read_to_string(&mut s) {
                 Ok(_) => {
-                    let toks = parse::parse_tokens(&s);
-                    println!("{:?}", toks);
-                    exec::run_script(toks);
+                    let tokens = parse::parse_tokens(&s);
+                    exec::run_script(tokens);
                 },
                 Err(e) => {
                     panic!("Error reading text in ./script: {}", e);

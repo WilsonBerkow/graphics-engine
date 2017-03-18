@@ -1,3 +1,4 @@
+use curve;
 use matrix::Matrix;
 use consts::*;
 
@@ -6,6 +7,15 @@ use render;
 
 fn unwrap_num(t: &Token) -> f64 {
     if let &Token::Num(x) = t {
+        return x;
+    } else {
+        panic!("parse error: expected number; found {:?}", t);
+    }
+}
+
+fn next_num(t: &Vec<Token>, i: &mut usize) -> f64 {
+    if let Token::Num(x) = t[*i] {
+        *i += 1;
         return x;
     } else {
         panic!("parse error: expected number; found {:?}", t);
@@ -38,6 +48,49 @@ pub fn run_script(toks: Vec<Token>) {
                     [x0, y0, z0, 1.0],
                     [x1, y1, z1, 1.0]);
                 i += 7;
+            },
+
+            Token::Cmd(Command::Circle) => {
+                i += 1;
+                let cx = next_num(&toks, &mut i);
+                let cy = next_num(&toks, &mut i);
+                let cz = next_num(&toks, &mut i);
+                let r = next_num(&toks, &mut i);
+                curve::circle(&mut edges, cx, cy, cz, r);
+            },
+
+            Token::Cmd(Command::Hermite) => {
+                i += 1;
+                let x0 = next_num(&toks, &mut i);
+                let y0 = next_num(&toks, &mut i);
+                let x1 = next_num(&toks, &mut i);
+                let y1 = next_num(&toks, &mut i);
+                let xm0 = next_num(&toks, &mut i);
+                let ym0 = next_num(&toks, &mut i);
+                let xm1 = next_num(&toks, &mut i);
+                let ym1 = next_num(&toks, &mut i);
+                curve::hermite(&mut edges, 128,
+                    [x0, y0, 0.0, 1.0],
+                    [x1, y1, 0.0, 1.0],
+                    [xm0, ym0, 0.0, 1.0],
+                    [xm1, ym1, 0.0, 1.0]);
+            },
+
+            Token::Cmd(Command::Bezier) => {
+                i += 1;
+                let x0 = next_num(&toks, &mut i);
+                let y0 = next_num(&toks, &mut i);
+                let x1 = next_num(&toks, &mut i);
+                let y1 = next_num(&toks, &mut i);
+                let x2 = next_num(&toks, &mut i);
+                let y2 = next_num(&toks, &mut i);
+                let x3 = next_num(&toks, &mut i);
+                let y3 = next_num(&toks, &mut i);
+                curve::bezier(&mut edges, 128,
+                    [x0, y0, 0.0, 1.0],
+                    [x1, y1, 0.0, 1.0],
+                    [x2, y2, 0.0, 1.0],
+                    [x3, y3, 0.0, 1.0]);
             },
 
             Token::Cmd(Command::Ident) => {

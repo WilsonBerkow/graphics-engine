@@ -16,6 +16,11 @@ impl Matrix {
         Matrix { cols: columns }
     }
 
+    /// Make a column vector
+    pub fn column_vector(x: f64, y: f64, z: f64, h: f64) -> Matrix {
+        Matrix { cols: vec![[x, y, z, h]] }
+    }
+
     pub fn with_capacity(cols: usize, val: f64) -> Matrix {
         Matrix::new(vec![[val; 4]; cols])
     }
