@@ -1,4 +1,7 @@
-# work3 -- transform
+# Graphics
+
+This is the project for Stuy CS's Graphics class. It is a graphics engine
+work-in-progress.
 
 ## Install `rustc`
 
