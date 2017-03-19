@@ -1,9 +1,9 @@
-use curve;
 use matrix::Matrix;
-use consts::*;
-
+use curve;
 use parse::{Token, Command, Axis};
 use render;
+use ppm;
+use consts::*;
 
 fn unwrap_num(t: &Token) -> f64 {
     if let &Token::Num(x) = t {
@@ -132,9 +132,7 @@ pub fn run_script(toks: Vec<Token>) {
             },
 
             Token::Cmd(Command::Display) => {
-                use point::Color;
-                use ppm;
-                let mut image = vec![vec![Color::black(); WIDTH]; HEIGHT];
+                let mut image = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
                 render::edge_list(&mut image, &edges);
                 ppm::display_image(&image);
                 i += 1;
@@ -142,10 +140,7 @@ pub fn run_script(toks: Vec<Token>) {
 
             Token::Cmd(Command::Save) => {
                 if let &Token::FileName(ref name) = &toks[i + 1] {
-                    use point::Color;
-                    use ppm;
-                    use render;
-                    let mut image = vec![vec![Color::black(); WIDTH]; HEIGHT];
+                    let mut image = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
                     render::edge_list(&mut image, &edges);
                     ppm::save_png(&image, name);
                     i += 2;

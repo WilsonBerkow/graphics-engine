@@ -1,14 +1,10 @@
 /// Matrix math
 mod matrix;
 
-mod point;
-
-mod line;
-
 /// Add curves to an edge matrix
 mod curve;
 
-/// Render lines to an in-memory representation of the pixels of the screen
+/// Render edges to an in-memory representation of the pixels of the screen
 mod render;
 
 /// Create image files

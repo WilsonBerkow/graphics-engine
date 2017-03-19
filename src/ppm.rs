@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::process::Command;
 
-use point::Color;
+use render::Color;
 use consts::*;
 
 pub fn save_ppm(image: &Vec<Vec<Color>>, filename: &str) {
