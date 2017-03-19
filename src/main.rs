@@ -23,12 +23,6 @@ mod exec;
 /// Crate-wide constants
 mod consts;
 
-/// Code specific to work2
-mod work2;
-
-/// Code specific to work3
-mod work3;
-
 use std::fs::File;
 use std::io::prelude::*;
 

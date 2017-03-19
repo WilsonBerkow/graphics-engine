@@ -7,12 +7,6 @@ use std::process::Command;
 use point::Color;
 use consts::*;
 
-pub fn make_ppm<T>(f: T) where T: FnOnce(&mut Vec<Vec<Color>>) {
-    let mut image = vec![vec![Color::rgb(0, 0, 50); WIDTH]; HEIGHT];
-    f(&mut image);
-    save_ppm(&image, "img.ppm");
-}
-
 pub fn save_ppm(image: &Vec<Vec<Color>>, filename: &str) {
     let path = Path::new(filename);
     let path_display = path.display(); // For safe string formatting
