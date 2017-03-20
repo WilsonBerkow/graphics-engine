@@ -1,156 +1,157 @@
 use matrix::Matrix;
 use curve;
-use parse::{Token, Command, Axis};
 use render;
 use ppm;
 use consts::*;
+use std;
+use std::str::SplitWhitespace;
 
-fn unwrap_num(t: &Token) -> f64 {
-    if let &Token::Num(x) = t {
-        return x;
+fn next_num<'a, T: std::iter::Iterator<Item=&'a str>>(iter: &mut T, cmd: &str) -> Result<f64, String> {
+    if let Some(tok) = iter.next() {
+        if let Ok(num) = tok.parse::<f64>() {
+            Ok(num)
+        } else {
+            Err(format!("Expected numeric argument to {}, found '{}'", cmd, tok))
+        }
     } else {
-        panic!("parse error: expected number; found {:?}", t);
+        Err(format!("Unexpected end of file; expected numeric argument to {}", cmd))
     }
 }
 
-fn next_num(t: &Vec<Token>, i: &mut usize) -> f64 {
-    if let Token::Num(x) = t[*i] {
-        *i += 1;
-        return x;
-    } else {
-        panic!("parse error: expected number; found {:?}", t);
-    }
-}
 
-fn unwrap_axis(t: &Token) -> Axis {
-    if let &Token::Axis(axis) = t {
-        return axis;
-    } else {
-        panic!("parse error: expected x or y or z; found {:?}", t);
-    }
-}
-
-pub fn run_script(toks: Vec<Token>) {
+pub fn run_script(script: &str) -> Result<(), String> {
     let mut edges = Matrix::empty();
     let mut transform = Matrix::identity();
 
-    let mut i = 0;
-    while i < toks.len() {
-        match toks[i] {
-            Token::Cmd(Command::Line) => {
-                let x0 = unwrap_num(&toks[i + 1]);
-                let y0 = unwrap_num(&toks[i + 2]);
-                let z0 = unwrap_num(&toks[i + 3]);
-                let x1 = unwrap_num(&toks[i + 4]);
-                let y1 = unwrap_num(&toks[i + 5]);
-                let z1 = unwrap_num(&toks[i + 6]);
-                edges.push_edge(
-                    [x0, y0, z0, 1.0],
-                    [x1, y1, z1, 1.0]);
-                i += 7;
-            },
+    let mut toks = script.split_whitespace();
+    while let Some(cmd) = toks.next() {
+        run_cmd(&mut edges, &mut transform, cmd, &mut toks)?;
+    }
+    Ok(())
+}
 
-            Token::Cmd(Command::Circle) => {
-                i += 1;
-                let cx = next_num(&toks, &mut i);
-                let cy = next_num(&toks, &mut i);
-                let cz = next_num(&toks, &mut i);
-                let r = next_num(&toks, &mut i);
-                curve::circle(&mut edges, cx, cy, cz, r);
-            },
+fn run_cmd(edges: &mut Matrix, transform: &mut Matrix, cmd: &str, toks: &mut SplitWhitespace) -> Result<(), String> {
+    match cmd {
+        "line" => {
+            let x0 = next_num(toks, cmd)?;
+            let y0 = next_num(toks, cmd)?;
+            let z0 = next_num(toks, cmd)?;
+            let x1 = next_num(toks, cmd)?;
+            let y1 = next_num(toks, cmd)?;
+            let z1 = next_num(toks, cmd)?;
+            edges.push_edge(
+                [x0, y0, z0, 1.0],
+                [x1, y1, z1, 1.0]);
+            Ok(())
+        },
 
-            Token::Cmd(Command::Hermite) => {
-                i += 1;
-                let x0 = next_num(&toks, &mut i);
-                let y0 = next_num(&toks, &mut i);
-                let x1 = next_num(&toks, &mut i);
-                let y1 = next_num(&toks, &mut i);
-                let xm0 = next_num(&toks, &mut i);
-                let ym0 = next_num(&toks, &mut i);
-                let xm1 = next_num(&toks, &mut i);
-                let ym1 = next_num(&toks, &mut i);
-                curve::hermite(&mut edges, 128,
-                    [x0, y0, 0.0, 1.0],
-                    [x1, y1, 0.0, 1.0],
-                    [xm0, ym0, 0.0, 1.0],
-                    [xm1, ym1, 0.0, 1.0]);
-            },
+        "circle" => {
+            let cx = next_num(toks, cmd)?;
+            let cy = next_num(toks, cmd)?;
+            let cz = next_num(toks, cmd)?;
+            let r = next_num(toks, cmd)?;
+            curve::circle(edges, cx, cy, cz, r);
+            Ok(())
+        },
 
-            Token::Cmd(Command::Bezier) => {
-                i += 1;
-                let x0 = next_num(&toks, &mut i);
-                let y0 = next_num(&toks, &mut i);
-                let x1 = next_num(&toks, &mut i);
-                let y1 = next_num(&toks, &mut i);
-                let x2 = next_num(&toks, &mut i);
-                let y2 = next_num(&toks, &mut i);
-                let x3 = next_num(&toks, &mut i);
-                let y3 = next_num(&toks, &mut i);
-                curve::bezier(&mut edges, 128,
-                    [x0, y0, 0.0, 1.0],
-                    [x1, y1, 0.0, 1.0],
-                    [x2, y2, 0.0, 1.0],
-                    [x3, y3, 0.0, 1.0]);
-            },
+        "hermite" => {
+            let x0 = next_num(toks, cmd)?;
+            let y0 = next_num(toks, cmd)?;
+            let x1 = next_num(toks, cmd)?;
+            let y1 = next_num(toks, cmd)?;
+            let xm0 = next_num(toks, cmd)?;
+            let ym0 = next_num(toks, cmd)?;
+            let xm1 = next_num(toks, cmd)?;
+            let ym1 = next_num(toks, cmd)?;
+            curve::hermite(edges, 128,
+                           [x0, y0, 0.0, 1.0],
+                           [x1, y1, 0.0, 1.0],
+                           [xm0, ym0, 0.0, 1.0],
+                           [xm1, ym1, 0.0, 1.0]);
+            Ok(())
+        },
 
-            Token::Cmd(Command::Ident) => {
-                transform = Matrix::identity();
-                i += 1;
-            },
+        "bezier" => {
+            let x0 = next_num(toks, cmd)?;
+            let y0 = next_num(toks, cmd)?;
+            let x1 = next_num(toks, cmd)?;
+            let y1 = next_num(toks, cmd)?;
+            let x2 = next_num(toks, cmd)?;
+            let y2 = next_num(toks, cmd)?;
+            let x3 = next_num(toks, cmd)?;
+            let y3 = next_num(toks, cmd)?;
+            curve::bezier(edges, 128,
+                          [x0, y0, 0.0, 1.0],
+                          [x1, y1, 0.0, 1.0],
+                          [x2, y2, 0.0, 1.0],
+                          [x3, y3, 0.0, 1.0]);
+            Ok(())
+        },
 
-            Token::Cmd(Command::Scale) => {
-                let sx = unwrap_num(&toks[i + 1]);
-                let sy = unwrap_num(&toks[i + 2]);
-                let sz = unwrap_num(&toks[i + 3]);
-                transform = &Matrix::dilation_xyz(sx, sy, sz) * &transform;
-                i += 4;
-            },
+        "ident" => {
+            *transform = Matrix::identity();
+            Ok(())
+        },
 
-            Token::Cmd(Command::Move) => {
-                let dx = unwrap_num(&toks[i + 1]);
-                let dy = unwrap_num(&toks[i + 2]);
-                let dz = unwrap_num(&toks[i + 3]);
-                transform = &Matrix::translation_xyz(dx, dy, dz) * &transform;
-                i += 4;
-            },
+        "scale" => {
+            let sx = next_num(toks, cmd)?;
+            let sy = next_num(toks, cmd)?;
+            let sz = next_num(toks, cmd)?;
+            *transform = &Matrix::dilation_xyz(sx, sy, sz) * &*transform;
+            Ok(())
+        },
 
-            Token::Cmd(Command::Rotate) => {
-                let axis = unwrap_axis(&toks[i + 1]);
-                let angle = unwrap_num(&toks[i + 2]).to_radians();
+        "move" => {
+            let dx = next_num(toks, cmd)?;
+            let dy = next_num(toks, cmd)?;
+            let dz = next_num(toks, cmd)?;
+            *transform = &Matrix::translation_xyz(dx, dy, dz) * &*transform;
+            Ok(())
+        },
+
+        "rotate" => {
+            if let Some(axis) = toks.next() {
+                let angle = next_num(toks, cmd)?.to_radians();
                 let rotation = match axis {
-                    Axis::X => Matrix::rotation_about_x(angle),
-                    Axis::Y => Matrix::rotation_about_y(angle),
-                    Axis::Z => Matrix::rotation_about_z(angle)
+                    "x" => Matrix::rotation_about_x(angle),
+                    "y" => Matrix::rotation_about_y(angle),
+                    "z" => Matrix::rotation_about_z(angle),
+                    _ => {
+                        return Err(format!("Expected x or y or z, found {}", axis));
+                    }
                 };
-                transform = &rotation * &transform;
-                i += 3;
-            },
+                *transform = &rotation * &*transform;
+                Ok(())
+            } else {
+                Err("Unexpected end of file after \"rotate\"".to_owned())
+            }
+        },
 
-            Token::Cmd(Command::Apply) => {
-                edges = &transform * &edges;
-                i += 1;
-            },
+        "apply" => {
+            *edges = &*transform * &*edges;
+            Ok(())
+        },
 
-            Token::Cmd(Command::Display) => {
+        "display" => {
+            let mut image = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
+            render::edge_list(&mut image, &edges);
+            ppm::display_image(&image);
+            Ok(())
+        },
+
+        "save" => {
+            if let Some(name) = toks.next() {
                 let mut image = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
                 render::edge_list(&mut image, &edges);
-                ppm::display_image(&image);
-                i += 1;
-            },
-
-            Token::Cmd(Command::Save) => {
-                if let &Token::FileName(ref name) = &toks[i + 1] {
-                    let mut image = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
-                    render::edge_list(&mut image, &edges);
-                    ppm::save_png(&image, name);
-                    i += 2;
-                } else {
-                    panic!("Expected filename; found {:?}", &toks[i + 1]);
-                }
-            },
-            ref t => {
-                panic!("Unexpected token {:?} (token number {})", t, i);
+                ppm::save_png(&image, name);
+                Ok(())
+            } else {
+                Err("Unexpected end of file after \"save\"".to_owned())
             }
+        },
+
+        ref s => {
+            panic!("Unexpected token {}", s);
         }
     }
 }
