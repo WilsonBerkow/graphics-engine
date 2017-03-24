@@ -175,6 +175,14 @@ impl Matrix {
         items
     }
 
+    pub fn row_iter(&self, rownum: usize) -> MatrixRowIter {
+        MatrixRowIter::new(self, rownum)
+    }
+
+    pub fn col_iter(&self, colnum: usize) -> MatrixColIter {
+        MatrixColIter::new(self, colnum)
+    }
+
     /// Get the entry at row `row` and column `col`.
     pub fn get(&self, row: usize, col: usize) -> f64 {
         self.cols[col][row]
@@ -186,9 +194,82 @@ impl Matrix {
         self.cols[col][row] = val;
     }
 
+    pub fn set_col(&mut self, col: usize, items: [f64; 4]) {
+        self.cols[col] = items;
+    }
+
     /// Get the width of the matrix.
     pub fn width(&self) -> usize {
         self.cols.len()
+    }
+
+    /// Perform the matrix product `lhs` * `self`, in-place in `self`.
+    pub fn transform_by(&mut self, lhs: &Matrix) {
+        let mut col = [0.0f64; 4];
+        for j in 0..self.width() {
+            for i in 0..4 {
+                col[i] = dot_product(lhs.row_iter(i), self.col_iter(j));
+            }
+            self.set_col(j, col.clone());
+        }
+    }
+}
+
+pub struct MatrixRowIter<'a> {
+    mat: &'a Matrix,
+    row: usize,
+    col: usize
+}
+
+impl<'a> MatrixRowIter<'a> {
+    pub fn new<'b>(mat: &'b Matrix, row: usize) -> MatrixRowIter<'b> {
+        MatrixRowIter {
+            mat: mat,
+            row: row,
+            col: 0
+        }
+    }
+}
+
+impl<'a> Iterator for MatrixRowIter<'a> {
+    type Item = f64;
+    fn next(&mut self) -> Option<f64> {
+        if self.col < self.mat.width() {
+            let result = self.mat.get(self.row, self.col);
+            self.col += 1;
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+pub struct MatrixColIter<'a> {
+    mat: &'a Matrix,
+    row: usize,
+    col: usize
+}
+
+impl<'a> MatrixColIter<'a> {
+    pub fn new<'b>(mat: &'b Matrix, col: usize) -> MatrixColIter<'b> {
+        MatrixColIter {
+            mat: mat,
+            row: 0,
+            col: col
+        }
+    }
+}
+
+impl<'a> Iterator for MatrixColIter<'a> {
+    type Item = f64;
+    fn next(&mut self) -> Option<f64> {
+        if self.row < 4 {
+            let result = self.mat.get(self.row, self.col);
+            self.row += 1;
+            Some(result)
+        } else {
+            None
+        }
     }
 }
 
@@ -235,7 +316,6 @@ impl Add<Matrix> for Matrix {
     }
 }
 
-// TODO: add owned version of impls for Sub and Mul (as done with Add above)
 impl<'a, 'b> Sub<&'a Matrix> for &'b Matrix {
     type Output = Matrix;
     /// Add two matrices, assuming they are of the same width
@@ -251,7 +331,7 @@ impl<'a, 'b> Mul<&'a Matrix> for &'b Matrix {
         let mut m = Matrix::with_capacity(rhs.width(), 0.0);
         for i in 0..4 {
             for j in 0..rhs.width() {
-                let val: f64 = dot_product_refs(self.row(i).iter(), rhs.col(j).iter());
+                let val = dot_product(self.row_iter(i), rhs.col_iter(j));
                 m.set(i, j, val);
             }
         }
@@ -259,9 +339,18 @@ impl<'a, 'b> Mul<&'a Matrix> for &'b Matrix {
     }
 }
 
-fn dot_product_refs<'a, 'b, T: Iterator<Item=&'a f64>, U: Iterator<Item=&'b f64>>(v: T, u: U) -> f64 {
+/// Mutates the right hand side.
+impl<'a> Mul<Matrix> for &'a Matrix {
+    type Output = Matrix;
+    fn mul(self, mut rhs: Matrix) -> Matrix {
+        rhs.transform_by(self);
+        rhs
+    }
+}
+
+fn dot_product<'a, 'b, T: Iterator<Item=f64>, U: Iterator<Item=f64>>(v: T, u: U) -> f64 {
     let mut sum = 0.0;
-    for (&a, &b) in v.zip(u) {
+    for (a, b) in v.zip(u) {
         sum += a * b;
     }
     sum

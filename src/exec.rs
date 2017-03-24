@@ -97,7 +97,7 @@ fn run_cmd(edges: &mut Matrix, transform: &mut Matrix, cmd: &str, toks: &mut Spl
             let sx = next_num(toks, cmd)?;
             let sy = next_num(toks, cmd)?;
             let sz = next_num(toks, cmd)?;
-            *transform = &Matrix::dilation_xyz(sx, sy, sz) * &*transform;
+            transform.transform_by(&Matrix::dilation_xyz(sx, sy, sz));
             Ok(())
         },
 
@@ -105,7 +105,7 @@ fn run_cmd(edges: &mut Matrix, transform: &mut Matrix, cmd: &str, toks: &mut Spl
             let dx = next_num(toks, cmd)?;
             let dy = next_num(toks, cmd)?;
             let dz = next_num(toks, cmd)?;
-            *transform = &Matrix::translation_xyz(dx, dy, dz) * &*transform;
+            transform.transform_by(&Matrix::translation_xyz(dx, dy, dz));
             Ok(())
         },
 
@@ -120,7 +120,7 @@ fn run_cmd(edges: &mut Matrix, transform: &mut Matrix, cmd: &str, toks: &mut Spl
                         return Err(format!("Expected x or y or z, found {}", axis));
                     }
                 };
-                *transform = &rotation * &*transform;
+                transform.transform_by(&rotation);
                 Ok(())
             } else {
                 Err("Unexpected end of file after \"rotate\"".to_owned())
@@ -128,7 +128,7 @@ fn run_cmd(edges: &mut Matrix, transform: &mut Matrix, cmd: &str, toks: &mut Spl
         },
 
         "apply" => {
-            *edges = &*transform * &*edges;
+            edges.transform_by(transform);
             Ok(())
         },
 
