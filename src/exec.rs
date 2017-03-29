@@ -1,5 +1,6 @@
 use matrix::Matrix;
 use curve;
+use solid;
 use render;
 use ppm;
 use consts::*;
@@ -90,6 +91,36 @@ fn run_cmd(edges: &mut Matrix, transform: &mut Matrix, cmd: &str, toks: &mut Spl
                           [x1, y1, 0.0, 1.0],
                           [x2, y2, 0.0, 1.0],
                           [x3, y3, 0.0, 1.0]);
+            Ok(())
+        },
+
+        "box" => {
+            let x = next_num(toks, cmd)?;
+            let y = next_num(toks, cmd)?;
+            let z = next_num(toks, cmd)?;
+            let dx = next_num(toks, cmd)?;
+            let dy = next_num(toks, cmd)?;
+            let dz = next_num(toks, cmd)?;
+            solid::rect_prism(edges, x, y, z, dx, dy, dz);
+            Ok(())
+        },
+
+        "sphere" => {
+            let cx = next_num(toks, cmd)?;
+            let cy = next_num(toks, cmd)?;
+            let cz = next_num(toks, cmd)?;
+            let r = next_num(toks, cmd)?;
+            solid::sphere(edges, cx, cy, cz, r);
+            Ok(())
+        },
+
+        "torus" => {
+            let cx = next_num(toks, cmd)?;
+            let cy = next_num(toks, cmd)?;
+            let cz = next_num(toks, cmd)?;
+            let big_radius = next_num(toks, cmd)?;
+            let lil_radius = next_num(toks, cmd)?;
+            solid::torus(edges, cx, cy, cz, big_radius, lil_radius);
             Ok(())
         },
 

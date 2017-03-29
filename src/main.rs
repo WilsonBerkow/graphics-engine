@@ -4,6 +4,9 @@ mod matrix;
 /// Add curves to an edge matrix
 mod curve;
 
+/// Add 3D solids to an edge matrix
+mod solid;
+
 /// Render edges to an in-memory representation of the pixels of the screen
 mod render;
 
