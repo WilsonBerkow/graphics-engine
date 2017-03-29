@@ -32,6 +32,11 @@ pub fn run_script(script: &str) -> Result<(), String> {
 
 fn run_cmd(edges: &mut Matrix, transform: &mut Matrix, cmd: &str, toks: &mut SplitWhitespace) -> Result<(), String> {
     match cmd {
+        "clear" => {
+            edges.clear_cols();
+            Ok(())
+        },
+
         "line" => {
             let x0 = next_num(toks, cmd)?;
             let y0 = next_num(toks, cmd)?;

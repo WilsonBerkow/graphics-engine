@@ -163,6 +163,10 @@ impl Matrix {
         self.push_col(pt1);
     }
 
+    pub fn clear_cols(&mut self) {
+        self.cols.clear();
+    }
+
     /// Get a vector of entries in row `rownum`.
     pub fn row(&self, rownum: usize) -> Vec<f64> {
         if rownum > 3 {
