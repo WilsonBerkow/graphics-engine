@@ -42,6 +42,18 @@ impl Point {
     pub fn xy(x: i64, y: i64) -> Point {
         Point { x: x, y: y }
     }
+
+    pub fn vector_sum(&self, p: Point) -> Point {
+        Point { x: self.x + p.x, y: self.y + p.y }
+    }
+
+    pub fn vector_diff(&self, p: Point) -> Point {
+        Point { x: self.x - p.x, y: self.y - p.y }
+    }
+
+    pub fn clockwise_of(&self, p: Point) -> bool {
+        p.x * self.y - p.y * self.x > 0
+    }
 }
 
 /// Draw edges in an edge list matrix. Each successive pair of
@@ -58,6 +70,24 @@ pub fn edge_list(image: &mut Vec<Vec<Color>>, edges: &Matrix) {
         let q = Point::xy(qcol[0] as i64, qcol[1] as i64);
         line(image, p, q, Color::white());
         c += 2;
+    }
+}
+
+pub fn triangle_list(image: &mut Vec<Vec<Color>>, edges: &Matrix) {
+    let mut i = 0;
+    while i + 2 < edges.width() {
+        let pcol = edges.col(i);
+        let p = Point::xy(pcol[0] as i64, pcol[1] as i64);
+        let qcol = edges.col(i + 1);
+        let q = Point::xy(qcol[0] as i64, qcol[1] as i64);
+        let rcol = edges.col(i + 2);
+        let r = Point::xy(rcol[0] as i64, rcol[1] as i64);
+        if r.vector_diff(p).clockwise_of(q.vector_diff(p)) {
+            line(image, p, q, Color::white());
+            line(image, q, r, Color::white());
+            line(image, r, p, Color::white());
+        }
+        i += 3;
     }
 }
 

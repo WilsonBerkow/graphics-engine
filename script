@@ -1,36 +1,15 @@
-sphere
-0 0 0 125
-rotate
-z 90
-apply
-ident
-sphere
-0 0 0 250
 torus
-0 0 0 25 150
-ident
-rotate
-y 90
-move
-250 250 0
-apply
-ident
-move
--250 -250 0
-rotate
-y -90
+160 120 -20 15 200
 rotate
 x 90
-move
-250 250 0
 apply
 ident
-move
--250 -250 0
-rotate
-x 70
-move
-250 250 0
+sphere
+190 110 100 60
+sphere
+80 80 60 60
+scale
+2 2 2
 apply
 display
 save

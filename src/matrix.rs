@@ -163,6 +163,12 @@ impl Matrix {
         self.push_col(pt1);
     }
 
+    pub fn push_triangle(&mut self, pt0: [f64; 4], pt1: [f64; 4], pt2: [f64; 4]) {
+        self.push_col(pt0);
+        self.push_col(pt1);
+        self.push_col(pt2);
+    }
+
     pub fn clear_cols(&mut self) {
         self.cols.clear();
     }

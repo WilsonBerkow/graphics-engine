@@ -170,7 +170,7 @@ fn run_cmd(edges: &mut Matrix, transform: &mut Matrix, cmd: &str, toks: &mut Spl
 
         "display" => {
             let mut image = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
-            render::edge_list(&mut image, &edges);
+            render::triangle_list(&mut image, &edges);
             ppm::display_image(&image);
             Ok(())
         },
@@ -178,7 +178,7 @@ fn run_cmd(edges: &mut Matrix, transform: &mut Matrix, cmd: &str, toks: &mut Spl
         "save" => {
             if let Some(name) = toks.next() {
                 let mut image = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
-                render::edge_list(&mut image, &edges);
+                render::triangle_list(&mut image, &edges);
                 ppm::save_png(&image, name);
                 Ok(())
             } else {
