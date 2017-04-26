@@ -1,5 +1,6 @@
 use matrix::Matrix;
 use std::fmt;
+use consts::*;
 
 #[derive(Clone, Copy)]
 pub struct Color {
@@ -124,7 +125,7 @@ fn within_screen(image: &mut Vec<Vec<Color>>, p: Point) -> bool {
 /// If the point `p` is within the width and height of `image`, plot `color` at `p`.
 pub fn plot_if_visible(image: &mut Vec<Vec<Color>>, p: Point, color: Color) {
     if within_screen(image, p) {
-        image[p.y as usize][p.x as usize] = color;
+        image[HEIGHT - (p.y + 1) as usize][p.x as usize] = color;
     }
 }
 

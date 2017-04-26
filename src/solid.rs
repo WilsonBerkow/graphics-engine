@@ -25,26 +25,26 @@ pub fn rect_prism(triangles: &mut Matrix, x: f64, y: f64, z: f64, dx: f64, dy: f
     push_quad(triangles,
         [x, y, z, 1.0],
         [x + dx, y, z, 1.0],
-        [x + dx, y + dy, z, 1.0],
-        [x, y + dy, z, 1.0]);
+        [x + dx, y - dy, z, 1.0],
+        [x, y - dy, z, 1.0]);
     // Back face:
     push_quad(triangles,
         [x, y, z + dz, 1.0],
-        [x, y + dy, z + dz, 1.0],
-        [x + dx, y + dy, z + dz, 1.0],
+        [x, y - dy, z + dz, 1.0],
+        [x + dx, y - dy, z + dz, 1.0],
         [x + dx, y, z + dz, 1.0]);
     // Left face:
     push_quad(triangles,
         [x, y, z, 1.0],
-        [x, y + dy, z, 1.0],
-        [x, y + dy, z + dz, 1.0],
+        [x, y - dy, z, 1.0],
+        [x, y - dy, z + dz, 1.0],
         [x, y, z + dz, 1.0]);
     // Right face:
     push_quad(triangles,
         [x + dx, y, z, 1.0],
         [x + dx, y, z + dz, 1.0],
-        [x + dx, y + dy, z + dz, 1.0],
-        [x + dx, y + dy, z, 1.0]);
+        [x + dx, y - dy, z + dz, 1.0],
+        [x + dx, y - dy, z, 1.0]);
     // Top face:
     push_quad(triangles,
         [x, y, z, 1.0],
@@ -53,10 +53,10 @@ pub fn rect_prism(triangles: &mut Matrix, x: f64, y: f64, z: f64, dx: f64, dy: f
         [x + dx, y, z, 1.0]);
     // Bottom face:
     push_quad(triangles,
-        [x, y + dy, z, 1.0],
-        [x + dx, y + dy, z, 1.0],
-        [x + dx, y + dy, z + dz, 1.0],
-        [x, y + dy, z + dz, 1.0]);
+        [x, y - dy, z, 1.0],
+        [x + dx, y - dy, z, 1.0],
+        [x + dx, y - dy, z + dz, 1.0],
+        [x, y - dy, z + dz, 1.0]);
 }
 
 pub fn sphere(triangles: &mut Matrix, cx: f64, cy: f64, cz: f64, r: f64) {

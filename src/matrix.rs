@@ -99,7 +99,7 @@ impl Matrix {
         let cos = f64::cos(angle);
         let sin = f64::sin(angle);
         Matrix::new4x4(
-            cos, 0.0, -sin, 0.0,
+            cos, 0.0, sin, 0.0,
             0.0, 1.0, 0.0, 0.0,
             -sin, 0.0, cos, 0.0,
             0.0, 0.0, 0.0, 1.0)
@@ -215,12 +215,23 @@ impl Matrix {
 
     /// Perform the matrix product `lhs` * `self`, in-place in `self`.
     pub fn transform_by(&mut self, lhs: &Matrix) {
-        let mut col = [0.0f64; 4];
         for j in 0..self.width() {
+            let mut col = [0.0f64; 4];
             for i in 0..4 {
                 col[i] = dot_product(lhs.row_iter(i), self.col_iter(j));
             }
-            self.set_col(j, col.clone());
+            self.set_col(j, col);
+        }
+    }
+
+    /// Perform the matrix product `self` * `rhs`, in-place in `self`.
+    pub fn transform_on_right(&mut self, rhs: &Matrix) {
+        for j in 0..self.width() {
+            let mut col = [0.0f64; 4];
+            for i in 0..4 {
+                col[i] = dot_product(self.row_iter(i), rhs.col_iter(j));
+            }
+            self.set_col(j, col);
         }
     }
 }
