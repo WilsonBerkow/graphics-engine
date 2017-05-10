@@ -44,6 +44,7 @@ impl Point {
         Point { x: x, y: y }
     }
 
+    #[allow(dead_code)]
     pub fn vector_sum(&self, p: Point) -> Point {
         Point { x: self.x + p.x, y: self.y + p.y }
     }

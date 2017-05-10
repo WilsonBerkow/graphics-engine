@@ -1,10 +1,6 @@
 use matrix::Matrix;
 use std::f64::consts::PI;
 
-fn push_vertex(edges: &mut Matrix, x: f64, y: f64, z: f64) {
-    edges.push_edge([x, y, z, 1.0], [x, y, z, 1.0]);
-}
-
 // The points should be passed in clockwise order, and they will be
 // added to the list clockwise
 fn push_quad(edges: &mut Matrix, tl: [f64; 4], tr: [f64; 4], br: [f64; 4], bl: [f64; 4]) {
