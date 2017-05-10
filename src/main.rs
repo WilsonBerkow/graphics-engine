@@ -13,6 +13,8 @@ mod render;
 /// Create image files
 mod ppm;
 
+mod parse;
+
 /// Execute commands from a script
 mod exec;
 
@@ -31,9 +33,10 @@ fn main() {
             let mut s = String::from("");
             match file.read_to_string(&mut s) {
                 Ok(_) => {
-                    if let Err(msg) = exec::run_script(&s) {
-                        println!("Error!\n{}", msg);
-                    }
+                    println!("{:?}", parse::parse(&s));
+                    //if let Err(msg) = exec::run_script(&s) {
+                    //    println!("Error!\n{}", msg);
+                    //}
                 },
                 Err(e) => {
                     panic!("Error reading text in ./script: {}", e);
