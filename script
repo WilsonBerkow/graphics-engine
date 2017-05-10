@@ -1,65 +1,44 @@
+push
+rotate z -10
+move 50 250 0
+box -100 125 50 200 250 100
 
 push
-rotate
-z -10
-move
-50 250 0
-box
--100 125 50 200 250 100
-
-push
-move
-0 175 0
-sphere
-0 0 0 70
+move 0 175 0
+sphere 0 0 0 70
 pop
 
 push
-move
--100 125 0
-rotate
-x -45
-box
--40 0 40 40 100 80
+move -100 125 0
+rotate x -45
+box -40 0 40 40 100 80
 
 push
-move
--20 -100 0
-box
--10 0 10 20 125 20
+move -20 -100 0
+box -10 0 10 20 125 20
 pop
 pop
 
 push
-move
-100 125 0
-rotate
-x -45
-box
-0 0 40 40 100 80
+move 100 125 0
+rotate x -45
+box 0 0 40 40 100 80
 
 push
-move
-20 -100 0
-rotate
-x -20
-box
--10 0 10 20 125 20
+move 20 -100 0
+rotate x -20
+box -10 0 10 20 125 20
 pop
 pop
 
 push
-move
--100 -125 0
-box
-0 0 40 50 120 80
+move -100 -125 0
+box 0 0 40 50 120 80
 pop
 
 push
-move
-100 -125 0
-box
--50 0 40 50 120 80
+move 100 -125 0
+box -50 0 40 50 120 80
 
 pop
 pop
@@ -68,70 +47,50 @@ pop
 
 
 push
-scale
--1 1 1
-rotate
-z -10
-move
--450 50 0
-box
--100 125 50 200 250 100
+scale -1 1 1
+rotate z -10
+move -450 50 0
+box -100 125 50 200 250 100
 
 push
-move
-0 175 0
-sphere
-0 0 0 70
+move 0 175 0
+sphere 0 0 0 70
 pop
 
 push
-move
--100 125 0
-rotate
-x -45
-box
--40 0 40 40 100 80
+move -100 125 0
+rotate x -45
+box -40 0 40 40 100 80
 
 push
-move
--20 -100 0
-box
--10 0 10 20 125 20
+move -20 -100 0
+box -10 0 10 20 125 20
 pop
 pop
 
 push
-move
-100 125 0
-rotate
-x -45
-box
-0 0 40 40 100 80
+move 100 125 0
+rotate x -45
+box 0 0 40 40 100 80
 
 push
-move
-20 -100 0
-rotate
-x -20
-box
--10 0 10 20 125 20
+move 20 -100 0
+rotate x -20
+box -10 0 10 20 125 20
 pop
 pop
 
 push
-move
--100 -125 0
-box
-0 0 40 50 120 80
+move -100 -125 0
+box 0 0 40 50 120 80
 pop
 
 push
-move
-100 -125 0
-box
--50 0 40 50 120 80
+move 100 -125 0
+box -50 0 40 50 120 80
 
 pop
 pop
 
 display
+save img.png

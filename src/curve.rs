@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+// For the moment curves are not being used
+
 use std::f64::consts::PI;
 
 use matrix::Matrix;

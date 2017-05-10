@@ -1,3 +1,5 @@
+// TODO: Use Result instead of panics for error handling
+
 #[derive(Debug)]
 pub enum Axis {
     X,
@@ -17,13 +19,12 @@ pub enum Command<'a> {
     Box { x: f64, y: f64, z: f64, w: f64, h: f64, d: f64 }, // TODO: add Option<...>s for cs and constants
     Sphere { x: f64, y: f64, z: f64, r: f64 },
     Torus { x: f64, y: f64, z: f64, r0: f64, r1: f64 },
-    Line(f64, f64, f64, f64)
+    Line { x0: f64, y0: f64, z0: f64, x1: f64, y1: f64, z1: f64 }
 }
 
 pub fn parse<'a>(script: &'a str) -> Vec<Command<'a>> {
     let mut cmds = vec![];
     for mut line in script.lines() {
-        println!("{}", line);
         skip_linespace(&mut line);
         // Skip blank lines and comments
         if line.chars().nth(0) == Some('#') || line.len() == 0 {
@@ -51,7 +52,7 @@ pub fn parse<'a>(script: &'a str) -> Vec<Command<'a>> {
             "rotate" => {
                 Command::Rotate(
                     next_axis(&mut line),
-                    next_float(&mut line))
+                    next_float(&mut line).to_radians())
             },
             "scale" => {
                 Command::Scale {
@@ -88,18 +89,21 @@ pub fn parse<'a>(script: &'a str) -> Vec<Command<'a>> {
                 }
             },
             "line" => {
-                Command::Line(
-                    next_float(&mut line),
-                    next_float(&mut line),
-                    next_float(&mut line),
-                    next_float(&mut line))
+                Command::Line {
+                    x0: next_float(&mut line),
+                    y0: next_float(&mut line),
+                    z0: next_float(&mut line),
+                    x1: next_float(&mut line),
+                    y1: next_float(&mut line),
+                    z1: next_float(&mut line)
+                }
             },
             other => {
-                println!("{:?}", &cmds);
                 panic!("Error! Unknown command '{}'!", other);
             }
         };
         cmds.push(command);
+        // TODO: error on extra input
     }
     cmds
 }
