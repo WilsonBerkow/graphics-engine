@@ -86,16 +86,18 @@ impl Matrix {
     }
 
     pub fn rotation_about_x(angle: f64) -> Matrix {
+        println!("rotation_about_x({})", angle);
         let cos = f64::cos(angle);
         let sin = f64::sin(angle);
         Matrix::new4x4(
             1.0, 0.0, 0.0, 0.0,
             0.0, cos, -sin, 0.0,
-            0.0, -sin, cos, 0.0,
+            0.0, sin, cos, 0.0,
             0.0, 0.0, 0.0, 1.0)
     }
 
     pub fn rotation_about_y(angle: f64) -> Matrix {
+        println!("rotation_about_y({})", angle);
         let cos = f64::cos(angle);
         let sin = f64::sin(angle);
         Matrix::new4x4(
@@ -108,6 +110,7 @@ impl Matrix {
     /// Make a 4x4 rotation matrix for a rotation of `angle` radians
     /// about the z axis.
     pub fn rotation_about_z(angle: f64) -> Matrix {
+        println!("rotation_about_z({})", angle);
         let cos = f64::cos(angle);
         let sin = f64::sin(angle);
         Matrix::new4x4(
@@ -310,6 +313,7 @@ impl<'a, 'b> Add<&'a Matrix> for &'b Matrix {
     }
 }
 
+// TODO: remove all but ref plus ref
 // owned plus ref
 impl<'a> Add<&'a Matrix> for Matrix {
     type Output = Matrix;
