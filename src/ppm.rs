@@ -28,6 +28,7 @@ pub fn save_png(image: &Vec<Vec<Color>>, filename: &str) {
         .arg(".temp.ppm")
         .arg(filename)
         .status().ok().unwrap();
+    println!("Execution of `convert .temp.ppm {}` exited with status: {}", filename, status0);
 }
 
 pub fn clean_up() {

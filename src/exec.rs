@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use parse::{ self, Command, Axis };
 use matrix::Matrix;
 use solid;
@@ -12,13 +14,14 @@ pub fn run_script(script: &str) -> Result<(), String> {
 
     match get_anim_data(&cmds) {
         Some(anim_data) => {
-            println!("{:?}", &anim_data);
+            println!("anim_data: {:?}", &anim_data);
 
             let basename = anim_data.basename.unwrap_or("anim");
             let digits_for_name = dec_digits(anim_data.frames);
 
             // Render and save each frame:
             for i in 0..anim_data.frames {
+                let start = Instant::now();
                 let knobvals = knobs_for_frame(i, &anim_data.varies);
                 let mut transforms = vec![Matrix::identity()];
                 clear_screen(&mut screen);
@@ -26,6 +29,8 @@ pub fn run_script(script: &str) -> Result<(), String> {
                     run_cmd(&mut screen, &mut transforms, Some(&knobvals), cmd)?;
                 }
                 let filename = format!("anim/{}{:0digits$}.png", basename, i, digits=digits_for_name);
+                let elapsed = start.elapsed();
+                println!("Took: {}", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000);
                 ppm::save_png(&screen, &filename);
             }
             ppm::clean_up();
@@ -145,7 +150,7 @@ fn last<T>(v: &Vec<T>) -> &T {
 
 fn transform_last(mat: &Matrix, transforms: &mut Vec<Matrix>) {
     let len = transforms.len();
-    transforms[len - 1].transform_on_right(mat);
+    transforms[len - 1] = &transforms[len - 1] * mat;
 }
 
 fn run_cmd(screen: &mut Vec<Vec<render::Color>>, transforms: &mut Vec<Matrix>, knobs: Option<&Vec<(&str, f64)>>, cmd: &Command) -> Result<(), String> {

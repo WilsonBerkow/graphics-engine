@@ -1,11 +1,9 @@
-frames 75
+frames 12
 basename football
-vary biggy 0 50 0 1
-vary biggy 51 74 1 1
+vary biggy 0 11 0.2 0.30
 
 push
-move 0 200 0
-scale 1 1 1
-rotate x 360 biggy
-
-sphere 200 0 0 100
+move 250 0 0
+rotate z 360 biggy
+box 100 100 0 50 50 50
+sphere 0 0 0 25

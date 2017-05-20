@@ -53,11 +53,11 @@ impl Matrix {
 
     /// Make a 4x4 identity matrix
     pub fn identity() -> Matrix {
-        Matrix::new(vec![
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0]])
+        Matrix::new4x4(
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0)
     }
 
     /// Make a translation matrix for translation by (dx, dy, dz)
@@ -86,7 +86,6 @@ impl Matrix {
     }
 
     pub fn rotation_about_x(angle: f64) -> Matrix {
-        println!("rotation_about_x({})", angle);
         let cos = f64::cos(angle);
         let sin = f64::sin(angle);
         Matrix::new4x4(
@@ -97,7 +96,6 @@ impl Matrix {
     }
 
     pub fn rotation_about_y(angle: f64) -> Matrix {
-        println!("rotation_about_y({})", angle);
         let cos = f64::cos(angle);
         let sin = f64::sin(angle);
         Matrix::new4x4(
@@ -110,7 +108,6 @@ impl Matrix {
     /// Make a 4x4 rotation matrix for a rotation of `angle` radians
     /// about the z axis.
     pub fn rotation_about_z(angle: f64) -> Matrix {
-        println!("rotation_about_z({})", angle);
         let cos = f64::cos(angle);
         let sin = f64::sin(angle);
         Matrix::new4x4(
@@ -131,9 +128,8 @@ impl Matrix {
 
     /// Get an array of the elements in column `colnum`.
     pub fn col(&self, colnum: usize) -> [f64; 4] {
-        let width = self.cols.len();
-        if colnum > width {
-            panic!("Attempted to get column {} of a matrix of width {}", colnum, width);
+        if colnum > self.cols.len() {
+            panic!("Attempted to get column {} of a matrix of width {}", colnum, self.cols.len());
         }
         self.cols[colnum]
     }
@@ -176,12 +172,17 @@ impl Matrix {
         self.cols.clear();
     }
 
+    pub fn set_width_capacity(&mut self, cols: usize) {
+        let additional_capacity = cols - self.cols.len();
+        self.cols.reserve(additional_capacity);
+    }
+
     /// Get a vector of entries in row `rownum`.
     pub fn row(&self, rownum: usize) -> Vec<f64> {
         if rownum > 3 {
             panic!("Attempted to get row {} of a matrix of height 4", rownum);
         }
-        let mut items = vec![];
+        let mut items = Vec::with_capacity(self.width());
         for column in &self.cols {
             items.push(column[rownum]);
         }
@@ -196,28 +197,33 @@ impl Matrix {
         MatrixColIter::new(self, colnum)
     }
 
+    #[inline]
     /// Get the entry at row `row` and column `col`.
     pub fn get(&self, row: usize, col: usize) -> f64 {
         self.cols[col][row]
     }
 
 
+    #[inline]
     /// Set the entry at row `row` and column `col` to `val`.
     pub fn set(&mut self, row: usize, col: usize, val: f64) {
         self.cols[col][row] = val;
     }
 
+    #[inline]
     pub fn set_col(&mut self, col: usize, items: [f64; 4]) {
         self.cols[col] = items;
     }
 
     /// Get the width of the matrix.
+    #[inline]
     pub fn width(&self) -> usize {
         self.cols.len()
     }
 
-    /// Perform the matrix product `lhs` * `self`, in-place in `self`.
+    /// Perform the matrix product `lhs` * `self`, in-place in `self`
     pub fn transform_by(&mut self, lhs: &Matrix) {
+        // Iterate over range of self's width because (NxM) * (MxP) = (NxP)
         for j in 0..self.width() {
             let mut col = [0.0f64; 4];
             for i in 0..4 {
@@ -227,15 +233,10 @@ impl Matrix {
         }
     }
 
-    /// Perform the matrix product `self` * `rhs`, in-place in `self`.
+    /// Perform the matrix product `self` * `rhs`, overwriting `self`
     pub fn transform_on_right(&mut self, rhs: &Matrix) {
-        for j in 0..self.width() {
-            let mut col = [0.0f64; 4];
-            for i in 0..4 {
-                col[i] = dot_product(self.row_iter(i), rhs.col_iter(j));
-            }
-            self.set_col(j, col);
-        }
+        let o = &*self * rhs;
+        *self = o;
     }
 }
 
@@ -252,6 +253,20 @@ impl<'a> MatrixRowIter<'a> {
             row: row,
             col: 0
         }
+    }
+}
+
+impl<'a> fmt::Display for MatrixRowIter<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        for col in 0..self.mat.width() {
+            if col == self.mat.width() - 1 {
+                write!(f, "{}]", self.mat.get(self.row, col))?;
+            } else {
+                write!(f, "{},", self.mat.get(self.row, col))?;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -281,6 +296,20 @@ impl<'a> MatrixColIter<'a> {
             row: 0,
             col: col
         }
+    }
+}
+
+impl<'a> fmt::Display for MatrixColIter<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[")?;
+        for row in 0..4 {
+            if row == 3 {
+                write!(f, "{}]", self.mat.get(row, self.col))?;
+            } else {
+                write!(f, "{},", self.mat.get(row, self.col))?;
+            }
+        }
+        Ok(())
     }
 }
 
