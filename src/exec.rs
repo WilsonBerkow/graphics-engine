@@ -1,4 +1,5 @@
 use std::time::Instant;
+use std::collections::HashMap;
 
 use parse::{ self, Command, Axis };
 use matrix::Matrix;
@@ -22,11 +23,11 @@ pub fn run_script(script: &str) -> Result<(), String> {
             // Render and save each frame:
             for i in 0..anim_data.frames {
                 let start = Instant::now();
-                let knobvals = knobs_for_frame(i, &anim_data.varies);
+                let mut knobvals = knobs_for_frame(i, &anim_data.varies);
                 let mut transforms = vec![Matrix::identity()];
                 clear_screen(&mut screen);
                 for cmd in &cmds {
-                    run_cmd(&mut screen, &mut transforms, Some(&knobvals), cmd)?;
+                    run_cmd(&mut screen, &mut transforms, Some(&mut knobvals), cmd)?;
                 }
                 let filename = format!("anim/{}{:0digits$}.png", basename, i, digits=digits_for_name);
                 let elapsed = start.elapsed();
@@ -100,24 +101,24 @@ fn get_anim_data<'a>(commands: &Vec<Command<'a>>) -> Option<AnimData<'a>> {
     return None;
 }
 
-fn knob_val<'a>(knobs: &Vec<(&'a str, f64)>, knob: &'a str) -> f64 {
-    for &(k, v) in knobs {
-        if k == knob {
-            return v;
-        }
+fn knob_val<'a>(knobs: &HashMap<&'a str, f64>, knob: &'a str) -> f64 {
+    match knobs.get(knob) {
+        Some(v) => *v,
+        None => {
+            panic!("Knob '{}' not defined for every frame");
+        },
     }
-    panic!("Knob '{}' not defined for every frame");
 }
 
-fn optknob_val<'a>(optknobs: Option<&Vec<(&'a str, f64)>>, optknob: Option<&'a str>) -> f64 {
+fn optknob_val<'a>(optknobs: Option<&HashMap<&'a str, f64>>, optknob: Option<&'a str>) -> f64 {
     if let (Some(knobs), Some(knob)) = (optknobs, optknob) {
         knob_val(knobs, knob)
     } else {
-        1.0
+        1.0 // default to 1.0 to not scale values at all
     }
 }
 
-fn knobs_for_frame<'a>(frame: usize, varies: &Vec<parse::Variation<'a>>) -> Vec<(&'a str, f64)> {
+fn knobs_for_frame<'a>(frame: usize, varies: &Vec<parse::Variation<'a>>) -> HashMap<&'a str, f64> {
     let mut knob_vals = vec![];
     for vary in varies {
         if vary.fst_frame <= frame && frame <= vary.last_frame {
@@ -141,7 +142,7 @@ fn knobs_for_frame<'a>(frame: usize, varies: &Vec<parse::Variation<'a>>) -> Vec<
         }
         // Otherwise, this 'vary' doesn't apply to the current frame.
     }
-    return knob_vals;
+    return knob_vals.into_iter().collect();
 }
 
 fn last<T>(v: &Vec<T>) -> &T {
@@ -153,7 +154,7 @@ fn transform_last(mat: &Matrix, transforms: &mut Vec<Matrix>) {
     transforms[len - 1] = &transforms[len - 1] * mat;
 }
 
-fn run_cmd(screen: &mut Vec<Vec<render::Color>>, transforms: &mut Vec<Matrix>, knobs: Option<&Vec<(&str, f64)>>, cmd: &Command) -> Result<(), String> {
+fn run_cmd<'a, 'b, 'c, 'd, 'e>(screen: &'a mut Vec<Vec<render::Color>>, transforms: &'b mut Vec<Matrix>, knobs: Option<&'c mut HashMap<&'d str, f64>>, cmd: &'e Command<'d>) -> Result<(), String> {
     match cmd {
         &Command::Line { x0, y0, z0, x1, y1, z1 } => {
             let mut edges = Matrix::empty();
@@ -203,19 +204,19 @@ fn run_cmd(screen: &mut Vec<Vec<render::Color>>, transforms: &mut Vec<Matrix>, k
         },
 
         &Command::Scale { x, y, z, knob } => {
-            let t = optknob_val(knobs, knob);
+            let t = optknob_val(knobs.map(|x| &*x), knob);
             transform_last(&Matrix::dilation_xyz(t * x, t * y, t * z), transforms);
             Ok(())
         },
 
         &Command::Move { x, y, z, knob } => {
-            let t = optknob_val(knobs, knob);
+            let t = optknob_val(knobs.map(|x| &*x), knob);
             transform_last(&Matrix::translation_xyz(t * x, t * y, t * z), transforms);
             Ok(())
         },
 
         &Command::Rotate(axis, degrees, knob) => {
-            let t = optknob_val(knobs, knob);
+            let t = optknob_val(knobs.map(|x| &*x), knob);
             let radians = degrees.to_radians();
             let rotation = match axis {
                 Axis::X => Matrix::rotation_about_x(t * radians),
@@ -233,6 +234,33 @@ fn run_cmd(screen: &mut Vec<Vec<render::Color>>, transforms: &mut Vec<Matrix>, k
 
         &Command::Save(name) => {
             ppm::save_png(&screen, name);
+            Ok(())
+        },
+
+        &Command::Set(knob, val) => {
+            match knobs {
+                Some(knobs) => {
+                    let r = knobs.entry(knob).or_insert(0.0);
+                    *r = val;
+                },
+                None => {
+                    // TODO: instead of None, just have an empty HashMap so set can be used
+                },
+            }
+            Ok(())
+        },
+
+        &Command::SetKnobs(v) => {
+            match knobs {
+                Some(knobs) => {
+                    for val in knobs.values_mut() {
+                        *val = v;
+                    }
+                },
+                None => {
+                    // TODO: instead of None, just have an empty HashMap so set can be used
+                },
+            }
             Ok(())
         },
 

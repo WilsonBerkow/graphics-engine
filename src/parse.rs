@@ -14,7 +14,7 @@ pub struct Variation<'a> {
     pub fst_frame: usize,
     pub last_frame: usize,
     pub min_val: f64,
-    pub max_val: f64
+    pub max_val: f64,
 }
 
 #[derive(Debug)]
@@ -32,7 +32,9 @@ pub enum Command<'a> {
     Line { x0: f64, y0: f64, z0: f64, x1: f64, y1: f64, z1: f64 },
     Frames(usize),
     Basename(&'a str),
-    Vary(Variation<'a>)
+    Vary(Variation<'a>),
+    Set(&'a str, f64),
+    SetKnobs(f64),
 }
 
 //impl<'a> Ord for Command<'a> {
@@ -143,6 +145,10 @@ pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, &'static str> {
                     max_val: next_float(&mut line)
                 })
             },
+
+            "set" => Command::Set(next_lexeme(&mut line)?, next_float(&mut line)),
+
+            "setknobs" => Command::SetKnobs(next_float(&mut line)),
 
             other => {
                 panic!("Error! Unknown command '{}'!", other);
