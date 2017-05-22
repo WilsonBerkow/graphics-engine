@@ -50,7 +50,11 @@ pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, &'static str> {
         skip_linespace(&mut line);
         // Skip blank lines and comments
         // TODO: handle comments at end of lines with commands
-        if line.chars().nth(0) == Some('#') || line.len() == 0 {
+        // TODO: make this not a jank one-liner
+        if line.chars().nth(0) == Some('#') ||
+                line.len() == 0 ||
+                (line.chars().nth(0) == Some('/') &&
+                 line.chars().nth(1) == Some('/')) {
             continue;
         }
 
