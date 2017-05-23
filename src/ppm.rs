@@ -3,6 +3,9 @@ use std::path::Path;
 use std::fs::File;
 use std::io::prelude::*;
 use std::process::Command;
+use std::thread::JoinHandle;
+use std::thread;
+use std::sync::mpsc::Receiver;
 
 use render::Color;
 use consts::*;
@@ -20,6 +23,14 @@ pub fn save_ppm(image: &Vec<Vec<Color>>, filename: &str) {
     };
     write_header(&mut file, WIDTH, HEIGHT);
     write_image(&mut file, &image);
+}
+
+pub fn spawn_saver(rx: Receiver<(String, Box<Vec<Vec<Color>>>)>) {
+    thread::spawn(move || {
+        for (name, screen) in rx {
+            save_png(&screen, &name);
+        }
+    });
 }
 
 pub fn save_png(image: &Vec<Vec<Color>>, filename: &str) {

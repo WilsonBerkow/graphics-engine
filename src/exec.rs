@@ -1,5 +1,6 @@
 use std::time::Instant;
 use std::collections::HashMap;
+use std::sync::mpsc::Sender;
 
 use parse::{ self, Command, Axis };
 use matrix::Matrix;
@@ -8,9 +9,8 @@ use render;
 use ppm;
 use consts::*;
 
-pub fn run_script(script: &str) -> Result<(), String> {
-    let mut screen = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
-
+// TODO: clean up w/ regard to distinction between single-image and animation rendering
+pub fn run_script(script: &str, tx: Sender<(String, Box<Vec<Vec<render::Color>>>)>) -> Result<(), String> {
     let cmds = parse::parse(script)?;
 
     match get_anim_data(&cmds) {
@@ -22,6 +22,7 @@ pub fn run_script(script: &str) -> Result<(), String> {
 
             // Render and save each frame:
             for i in 0..anim_data.frames {
+                let mut screen = Box::new(vec![vec![render::Color::black(); WIDTH]; HEIGHT]);
                 let start = Instant::now();
                 let mut knobvals = knobs_for_frame(i, &anim_data.varies);
                 let mut transforms = vec![Matrix::identity()];
@@ -32,11 +33,12 @@ pub fn run_script(script: &str) -> Result<(), String> {
                 let filename = format!("anim/{}{:0digits$}.png", basename, i, digits=digits_for_name);
                 let elapsed = start.elapsed();
                 println!("Took: {}", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000);
-                ppm::save_png(&screen, &filename);
+                tx.send((filename, screen));
             }
             ppm::clean_up();
         },
         None => {
+            let mut screen = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
             let mut transforms = vec![Matrix::identity()];
             for cmd in &cmds {
                 run_cmd(&mut screen, &mut transforms, None, cmd)?;

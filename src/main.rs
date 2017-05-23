@@ -22,7 +22,10 @@ mod exec;
 mod consts;
 
 use std::fs::File;
+extern crate crossbeam;
+
 use std::io::prelude::*;
+use std::sync::mpsc::channel;
 
 fn main() {
     match File::open("script") {
@@ -33,7 +36,9 @@ fn main() {
             let mut s = String::from("");
             match file.read_to_string(&mut s) {
                 Ok(_) => {
-                    if let Err(msg) = exec::run_script(&s) {
+                    let (tx, rx) = channel();
+                    let handle = ppm::spawn_saver(rx);
+                    if let Err(msg) = exec::run_script(&s, tx) {
                         println!("Error!\n{}", msg);
                     }
                 },
