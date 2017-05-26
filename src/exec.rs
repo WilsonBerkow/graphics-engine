@@ -15,14 +15,16 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Vec<Vec<render::Color>>>
 
     match get_anim_data(&cmds) {
         Some(anim_data) => {
-            println!("anim_data: {:?}", &anim_data);
+            if DEBUG { println!("anim_data: {:?}", &anim_data); }
 
             let basename = anim_data.basename.unwrap_or("anim");
             let digits_for_name = dec_digits(anim_data.frames);
 
+            let mut screens = vec![Box::new(vec![vec![render::Color::black(); WIDTH]; HEIGHT]); anim_data.frames];
+
             // Render and save each frame:
             for i in 0..anim_data.frames {
-                let mut screen = Box::new(vec![vec![render::Color::black(); WIDTH]; HEIGHT]);
+                let mut screen = screens.pop().unwrap();
                 let start = Instant::now();
                 let mut knobvals = knobs_for_frame(i, &anim_data.varies);
                 let mut transforms = vec![Matrix::identity()];
@@ -30,12 +32,11 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Vec<Vec<render::Color>>>
                 for cmd in &cmds {
                     run_cmd(&mut screen, &mut transforms, Some(&mut knobvals), cmd)?;
                 }
-                let filename = format!("anim/{}{:0digits$}.png", basename, i, digits=digits_for_name);
                 let elapsed = start.elapsed();
-                println!("Took: {}", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000);
+                if DEBUG { println!("Took: {}", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000); }
+                let filename = format!("anim\\{}{:0digits$}.png", basename, i, digits=digits_for_name);
                 tx.send((filename, screen));
             }
-            ppm::clean_up();
         },
         None => {
             let mut screen = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
@@ -98,7 +99,7 @@ fn get_anim_data<'a>(commands: &Vec<Command<'a>>) -> Option<AnimData<'a>> {
         });
     }
     if varies.len() > 0 {
-        println!("WARNING: found 'vary' but not 'frames'");
+        if DEBUG { println!("WARNING: found 'vary' but not 'frames'"); }
     }
     return None;
 }

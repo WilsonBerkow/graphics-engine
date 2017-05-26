@@ -2,11 +2,17 @@ use std::error::Error;
 use std::path::Path;
 use std::fs::File;
 use std::io::prelude::*;
+use std::io::BufWriter;
 use std::process::Command;
+
+use std::borrow::Borrow;
 use std::thread::JoinHandle;
 use std::thread;
+use std::sync::Arc;
 use std::sync::mpsc::Receiver;
+use std::time::Instant;
 
+use worker::WorkerPool;
 use render::Color;
 use consts::*;
 
@@ -21,32 +27,49 @@ pub fn save_ppm(image: &Vec<Vec<Color>>, filename: &str) {
         }
         Ok(file) => file,
     };
-    write_header(&mut file, WIDTH, HEIGHT);
     write_image(&mut file, &image);
 }
 
-pub fn spawn_saver(rx: Receiver<(String, Box<Vec<Vec<Color>>>)>) {
-    thread::spawn(move || {
-        for (name, screen) in rx {
-            save_png(&screen, &name);
-        }
-    });
+pub fn spawn_saver(rx: Receiver<(String, Box<Vec<Vec<Color>>>)>) -> WorkerPool {
+    WorkerPool::new(rx, 8)
+//    thread::spawn(move || {
+//        for (name, screen) in rx.par_iter() {
+//            save_png(&screen, &name);
+//        }
+//    })
+    //let arx = Arc::new(rx);
+    //let handles = vec![];
+    //for i in 0..3 {
+    //    let here_arx = arx.clone();
+    //    handles.push(thread::spawn(move || {
+    //        for (name, screen) in here_arx.borrow() {
+    //            let nm: String = name;
+    //            save_png(&screen, &nm);
+    //        }
+    //    }));
+    //}
+    //handles
 }
 
 pub fn save_png(image: &Vec<Vec<Color>>, filename: &str) {
-    save_ppm(image, ".temp.ppm");
-    let status0 = Command::new("convert")
-        .arg(".temp.ppm")
+    let tmp_name = format!("{}.ppm", filename);
+    save_ppm(image, &tmp_name);
+    let start = Instant::now();
+    let status0 = Command::new("C:\\Program Files\\ImageMagick-7.0.5-Q16\\convert")
+        .arg(&tmp_name)
         .arg(filename)
         .status().ok().unwrap();
-    println!("Execution of `convert .temp.ppm {}` exited with status: {}", filename, status0);
+    let elapsed = start.elapsed();
+    if DEBUG { println!("Convert took: {}ms", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000); }
+    println!("Execution of `convert {} {}` exited with status: {}", &tmp_name, filename, status0);
 }
 
 pub fn clean_up() {
-    let status1 = Command::new("rm")
-        .arg(".temp.ppm")
-        .status().ok().unwrap();
-    println!("Execution of `rm .temp.ppm` exited with status: {}", status1);
+    // TODO
+    //let status1 = Command::new("rm")
+    //    .arg("*.ppm")
+    //    .status().ok().unwrap();
+    //println!("Execution of `rm .temp.ppm` exited with status: {}", status1);
 }
 
 #[allow(dead_code)]
@@ -56,6 +79,11 @@ pub fn display_file(filename: &str) {
         .status().ok().unwrap();
     println!("Execution of `display {}` exited with status: {}", filename, status);
 }
+
+// Calculate images in sequence, generating strings and sending strings to be written
+// to worker threads
+
+// Also do imagemagick converts in a smarter way (i.e. not every single time)
 
 pub fn display_image(image: &Vec<Vec<Color>>) {
     save_png(image, ".temp.png");
@@ -69,22 +97,15 @@ pub fn display_image(image: &Vec<Vec<Color>>) {
     println!("Execution of `rm .temp.ppm` exited with status: {}", status1);
 }
 
-pub fn write_header(file: &mut File, width: usize, height: usize) {
-    if let Err(reason) = write!(file, "P3\n{} {} 255\n", width, height) {
-        panic!("could not write header to file. Error: {}",
-               reason.description());
-    }
-}
-
 pub fn write_image(file: &mut File, image: &Vec<Vec<Color>>) {
-    let mut contents = String::with_capacity(image.len() * image[0].len());
+    let start = Instant::now();
+    let mut bufwriter = BufWriter::new(&*file);
+    bufwriter.write_fmt(format_args!("P3\n{} {} 255\n", WIDTH, HEIGHT));
     for px in 0..WIDTH {
         for py in 0..HEIGHT {
-            contents.push_str(&image[px][py].fmt_ppm());
+            bufwriter.write_fmt(format_args!("{} {} {} ", image[px][py].r, image[px][py].g, image[px][py].b));
         }
     }
-    if let Err(reason) = file.write_all(contents.as_bytes()) {
-        panic!("could not write image to file. Error: {}",
-               reason.description());
-    }
+    let elapsed = start.elapsed();
+    if DEBUG { println!("Saving took: {}ms {}ns", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000, elapsed.subsec_nanos() as u64 % 1000000); }
 }

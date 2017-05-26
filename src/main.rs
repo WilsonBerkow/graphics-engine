@@ -18,14 +18,16 @@ mod parse;
 /// Execute commands from a script
 mod exec;
 
+mod worker;
+
 /// Crate-wide constants
 mod consts;
 
 use std::fs::File;
-extern crate crossbeam;
 
 use std::io::prelude::*;
 use std::sync::mpsc::channel;
+use std::time::Instant;
 
 fn main() {
     match File::open("script") {
@@ -38,9 +40,17 @@ fn main() {
                 Ok(_) => {
                     let (tx, rx) = channel();
                     let handle = ppm::spawn_saver(rx);
+                    let start = Instant::now();
                     if let Err(msg) = exec::run_script(&s, tx) {
                         println!("Error!\n{}", msg);
                     }
+                    handle.join();
+                    let elapsed = start.elapsed();
+                    println!("Total time: {}s {}ms", elapsed.as_secs(), elapsed.subsec_nanos() as u64 / 1000000);
+//                    for handle in handles {
+//                        handle.join();
+//                    }
+                    ppm::clean_up();
                 },
                 Err(e) => {
                     panic!("Error reading text in ./script: {}", e);
