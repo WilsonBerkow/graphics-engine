@@ -5,12 +5,12 @@ use std::sync::mpsc::Sender;
 use parse::{ self, Command, Axis };
 use matrix::Matrix;
 use solid;
-use render;
+use render::{ self, Screen, Color };
 use ppm;
 use consts::*;
 
 // TODO: clean up w/ regard to distinction between single-image and animation rendering
-pub fn run_script(script: &str, tx: Sender<(String, Box<Vec<Vec<render::Color>>>)>) -> Result<(), String> {
+pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<(), String> {
     let cmds = parse::parse(script)?;
 
     match get_anim_data(&cmds) {
@@ -22,15 +22,13 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Vec<Vec<render::Color>>>
             let basename = anim_data.basename.unwrap_or("anim");
             let digits_for_name = dec_digits(anim_data.frames);
 
-            let mut screens = vec![Box::new(vec![vec![render::Color::black(); WIDTH]; HEIGHT]); anim_data.frames];
-
             // Render and save each frame:
             for i in 0..anim_data.frames {
-                let mut screen = screens.pop().unwrap();
+                let mut screen = Screen::new_boxed_black();
                 let start = Instant::now();
                 let mut knobvals = knobs_for_frame(i, &anim_data.varies);
                 let mut transforms = vec![Matrix::identity()];
-                clear_screen(&mut screen);
+                screen.clear_black();
                 for cmd in &cmds {
                     run_cmd(&mut screen, &mut transforms, Some(&mut knobvals), cmd)?;
                 }
@@ -43,7 +41,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Vec<Vec<render::Color>>>
             }
         },
         None => {
-            let mut screen = vec![vec![render::Color::black(); WIDTH]; HEIGHT];
+            let mut screen = Screen::new_boxed_black();
             let mut transforms = vec![Matrix::identity()];
             for cmd in &cmds {
                 run_cmd(&mut screen, &mut transforms, None, cmd)?;
@@ -51,14 +49,6 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Vec<Vec<render::Color>>>
         }
     }
     Ok(())
-}
-
-fn clear_screen(screen: &mut Vec<Vec<render::Color>>) {
-    for v in screen {
-        for i in 0..v.len() {
-            v[i] = render::Color::black();
-        }
-    }
 }
 
 fn dec_digits(mut n: usize) -> usize {
@@ -163,7 +153,7 @@ fn transform_last(mat: &Matrix, transforms: &mut Vec<Matrix>) {
     transforms[len - 1] = &transforms[len - 1] * mat;
 }
 
-fn run_cmd<'a, 'b, 'c, 'd, 'e>(screen: &'a mut Vec<Vec<render::Color>>, transforms: &'b mut Vec<Matrix>, knobs: Option<&'c mut HashMap<&'d str, f64>>, cmd: &'e Command<'d>) -> Result<(), String> {
+fn run_cmd<'a, 'b, 'c, 'd, 'e>(screen: &'a mut Screen, transforms: &'b mut Vec<Matrix>, knobs: Option<&'c mut HashMap<&'d str, f64>>, cmd: &'e Command<'d>) -> Result<(), String> {
     match cmd {
         &Command::Line { x0, y0, z0, x1, y1, z1 } => {
             let mut edges = Matrix::empty();

@@ -3,6 +3,58 @@ use matrix::Matrix;
 use std::fmt;
 use consts::*;
 
+// row-major order
+pub struct Screen([u8; WIDTH * HEIGHT * PX_SIZE]);
+
+const SCREEN_ROW_SIZE: usize = WIDTH * PX_SIZE;
+
+impl Screen {
+    #[inline]
+    pub fn black() -> Screen {
+        Screen([0; WIDTH * HEIGHT * PX_SIZE])
+    }
+
+    pub fn new_boxed_black() -> Box<Screen> {
+        // TODO: when the heap API is stabilized, use that to skip the stack
+        // and allocate on the heap directly
+        // There are ways around it currently but they're jank.
+        // One issue I ran into (would be an issue with heap API) is
+        // converting a Box<[u8]> to a Box<[u8; ...]> (and then to a Box<Screen>).
+        // This is probably due to nuances in the representation of slices,
+        // which I didn't have time to research.
+        let data = [0u8; WIDTH * HEIGHT * PX_SIZE];
+        Box::new(Screen(data))
+    }
+
+    pub fn getxy(&self, x: usize, y: usize) -> Color {
+        let row = HEIGHT - y - 1;
+        let i = row * SCREEN_ROW_SIZE + x * PX_SIZE;
+        Color {
+            r: self.0[i],
+            g: self.0[i + 1],
+            b: self.0[i + 2]
+        }
+    }
+
+    pub fn setxy(&mut self, x: usize, y: usize, clr: Color) {
+        let row = HEIGHT - y - 1;
+        let i = row * SCREEN_ROW_SIZE + x * PX_SIZE;
+        self.0[i] = clr.r;
+        self.0[i + 1] = clr.g;
+        self.0[i + 2] = clr.b;
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+
+    pub fn clear_black(&mut self) {
+        for i in 0..WIDTH * HEIGHT * PX_SIZE {
+            self.0[i] = 0;
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Color {
     pub r: u8,
@@ -60,7 +112,7 @@ impl Point {
 /// (i.e. [A-start | A-end | B-start | B-end | etc...]).
 ///
 /// All edges are drawn in white.
-pub fn edge_list(image: &mut Vec<Vec<Color>>, edges: &Matrix) {
+pub fn edge_list(image: &mut Screen, edges: &Matrix) {
     let mut c = 0;
     while c + 1 < edges.width() {
         let pcol = edges.col(c);
@@ -72,7 +124,7 @@ pub fn edge_list(image: &mut Vec<Vec<Color>>, edges: &Matrix) {
     }
 }
 
-/*pub fn triangle_list(image: &mut Vec<Vec<Color>>, triangles: &Matrix) {
+/*pub fn triangle_list(image: &mut Screen, triangles: &Matrix) {
     let mut i = 0;
     while i + 2 < triangles.width() {
         let pcol = triangles.col(i);
@@ -90,7 +142,7 @@ pub fn edge_list(image: &mut Vec<Vec<Color>>, edges: &Matrix) {
     }
 }*/
 
-pub fn triangle_list(image: &mut Vec<Vec<Color>>, triangles: &Matrix) {
+pub fn triangle_list(image: &mut Screen, triangles: &Matrix) {
     let mut i = 0;
     while i + 2 < triangles.width() {
         let pcol = triangles.col(i);
@@ -107,7 +159,7 @@ pub fn triangle_list(image: &mut Vec<Vec<Color>>, triangles: &Matrix) {
 }
 
 /// Note: top, mid, and low are not required to be in any order.
-pub fn scanline(img: &mut Vec<Vec<Color>>, mut top: [f64; 4], mut mid: [f64; 4], mut low: [f64; 4], clr: Color) {
+pub fn scanline(img: &mut Screen, mut top: [f64; 4], mut mid: [f64; 4], mut low: [f64; 4], clr: Color) {
     // Sort `top`, `mid`, and `low` into the order their names imply
     if top[1] < mid[1] { swap(&mut top, &mut mid); }
     if top[1] < low[1] { swap(&mut top, &mut low); }
@@ -149,7 +201,7 @@ pub fn scanline(img: &mut Vec<Vec<Color>>, mut top: [f64; 4], mut mid: [f64; 4],
     }
 }
 
-fn flat_line(img: &mut Vec<Vec<Color>>, mut x0: i64, mut x1: i64, y: i64, clr: Color) {
+fn flat_line(img: &mut Screen, mut x0: i64, mut x1: i64, y: i64, clr: Color) {
     use std::cmp::{ min, max };
     // Return if y is offscreen
     if y < 0 || y >= HEIGHT as i64 {
@@ -167,12 +219,12 @@ fn flat_line(img: &mut Vec<Vec<Color>>, mut x0: i64, mut x1: i64, y: i64, clr: C
     let x1 = min(max(x1, 0), WIDTH as i64 - 1) as usize;
     let y = y as usize;
     for x in x0..x1 {
-        img[HEIGHT - y - 1][x] = clr;
+        img.setxy(x, y, clr);
     }
 }
 
 /// Draw a line in `image` using Bresenham's line algorithm (and variants for each octant).
-pub fn line(image: &mut Vec<Vec<Color>>, start: Point, end: Point, color: Color) {
+pub fn line(image: &mut Screen, start: Point, end: Point, color: Color) {
     if start.x > end.x {
         // Swap `start` and `end` so `start` is on the left
         line(image, end, start, color);
@@ -195,21 +247,21 @@ pub fn line(image: &mut Vec<Vec<Color>>, start: Point, end: Point, color: Color)
     }
 }
 
-fn within_screen(image: &mut Vec<Vec<Color>>, p: Point) -> bool {
-    let within_y = p.y >= 0 && p.y < image.len() as i64;
-    let within_x = p.x >= 0 && image.len() > 0 && p.x < image[0].len() as i64;
+fn within_screen(image: &mut Screen, p: Point) -> bool {
+    let within_y = p.y >= 0 && p.y < HEIGHT as i64;
+    let within_x = p.x >= 0 && p.x < WIDTH as i64;
     within_y && within_x
 }
 
 /// If the point `p` is within the width and height of `image`, plot `color` at `p`.
-pub fn plot_if_visible(image: &mut Vec<Vec<Color>>, p: Point, color: Color) {
+pub fn plot_if_visible(image: &mut Screen, p: Point, color: Color) {
     if within_screen(image, p) {
-        image[HEIGHT - (p.y + 1) as usize][p.x as usize] = color;
+        image.setxy(p.x as usize, p.y as usize, color);
     }
 }
 
 /// Bresenham's Line Algorithm for octant 1
-fn bline_oct1(image: &mut Vec<Vec<Color>>, mut start: Point, end: Point, color: Color) {
+fn bline_oct1(image: &mut Screen, mut start: Point, end: Point, color: Color) {
     let dx: i64 = end.x - start.x;
     let dy: i64 = end.y - start.y;
     let mut d: i64 = 2 * dy - dx;
@@ -226,7 +278,7 @@ fn bline_oct1(image: &mut Vec<Vec<Color>>, mut start: Point, end: Point, color: 
 }
 
 /// Bresenham's Line Algorithm for octant 2
-fn bline_oct2(image: &mut Vec<Vec<Color>>, mut start: Point, end: Point, color: Color) {
+fn bline_oct2(image: &mut Screen, mut start: Point, end: Point, color: Color) {
     let dx: i64 = end.x - start.x;
     let dy: i64 = end.y - start.y;
     let mut d: i64 = 2 * dy - dx;
@@ -243,7 +295,7 @@ fn bline_oct2(image: &mut Vec<Vec<Color>>, mut start: Point, end: Point, color: 
 }
 
 /// Bresenham's Line Algorithm for octant 7
-fn bline_oct7(image: &mut Vec<Vec<Color>>, mut start: Point, end: Point, color: Color) {
+fn bline_oct7(image: &mut Screen, mut start: Point, end: Point, color: Color) {
     let dx: i64 = end.x - start.x;
     let dy: i64 = end.y - start.y;
     let mut d: i64 = dy + 2 * dx;
@@ -262,7 +314,7 @@ fn bline_oct7(image: &mut Vec<Vec<Color>>, mut start: Point, end: Point, color: 
 }
 
 /// Bresenham's Line Algorithm for octant 8
-fn bline_oct8(image: &mut Vec<Vec<Color>>, mut start: Point, end: Point, color: Color) {
+fn bline_oct8(image: &mut Screen, mut start: Point, end: Point, color: Color) {
     let dx: i64 = end.x - start.x;
     let dy: i64 = end.y - start.y;
     let mut d: i64 = 2 * dy + dx;
