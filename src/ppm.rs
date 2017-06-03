@@ -79,10 +79,12 @@ pub fn display_image(image: &Vec<Vec<Color>>) {
 pub fn write_image(file: &mut File, image: &Vec<Vec<Color>>) {
     let start = Instant::now();
     let mut bufwriter = BufWriter::new(&*file);
-    bufwriter.write_fmt(format_args!("P3\n{} {} 255\n", WIDTH, HEIGHT));
-    for px in 0..WIDTH {
-        for py in 0..HEIGHT {
-            bufwriter.write_fmt(format_args!("{} {} {} ", image[px][py].r, image[px][py].g, image[px][py].b));
+    // P6 identifies the version of PPM in which colors are represented
+    // in binary; as our max color value is 255, each RGB color is 3 bytes
+    bufwriter.write_fmt(format_args!("P6\n{} {} 255\n", WIDTH, HEIGHT));
+    for py in 0..HEIGHT {
+        for px in 0..WIDTH {
+            bufwriter.write(&[image[py][px].r, image[py][px].g, image[py][px].b]);
         }
     }
     let elapsed = start.elapsed();
