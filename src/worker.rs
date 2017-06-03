@@ -2,7 +2,7 @@ use std::thread::{ self, JoinHandle };
 use std::sync::mpsc::Receiver;
 use std::sync::{ Arc, Mutex };
 
-use render::{ Screen, Color };
+use render::Screen;
 use ppm;
 
 pub struct WorkerPool {

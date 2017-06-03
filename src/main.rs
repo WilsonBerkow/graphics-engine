@@ -40,6 +40,7 @@ fn main() {
                 Ok(_) => {
                     let (tx, rx) = channel();
                     let handle = ppm::spawn_saver(rx);
+                    ppm::mkdirp("anim");
                     let start = Instant::now();
                     if let Err(msg) = exec::run_script(&s, tx) {
                         println!("Error!\n{}", msg);
@@ -47,9 +48,6 @@ fn main() {
                     handle.join();
                     let elapsed = start.elapsed();
                     println!("Total time: {}s {}ms", elapsed.as_secs(), elapsed.subsec_nanos() as u64 / 1000000);
-//                    for handle in handles {
-//                        handle.join();
-//                    }
                     ppm::clean_up();
                 },
                 Err(e) => {

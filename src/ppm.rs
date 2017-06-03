@@ -9,7 +9,7 @@ use std::sync::mpsc::Receiver;
 use std::time::Instant;
 
 use worker::WorkerPool;
-use render::{ Screen, Color };
+use render::Screen;
 use consts::*;
 
 pub fn save_ppm(image: &Screen, filename: &str) {
@@ -43,6 +43,14 @@ pub fn save_png(image: &Screen, filename: &str) {
         println!("Convert took: {}ms", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000);
     }
     println!("Execution of `convert {} {}` exited with status: {}", &tmp_name, filename, status0);
+}
+
+pub fn mkdirp(name: &str) {
+    let status = Command::new("mkdir")
+        .arg("-p")
+        .arg(name)
+        .status().ok().unwrap();
+    println!("Execution of `mkdir {}` exited with status: {}", name, status);
 }
 
 pub fn clean_up() {

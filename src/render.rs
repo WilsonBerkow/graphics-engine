@@ -9,11 +9,6 @@ pub struct Screen([u8; WIDTH * HEIGHT * PX_SIZE]);
 const SCREEN_ROW_SIZE: usize = WIDTH * PX_SIZE;
 
 impl Screen {
-    #[inline]
-    pub fn black() -> Screen {
-        Screen([0; WIDTH * HEIGHT * PX_SIZE])
-    }
-
     pub fn new_boxed_black() -> Box<Screen> {
         // TODO: when the heap API is stabilized, use that to skip the stack
         // and allocate on the heap directly
@@ -67,6 +62,7 @@ impl Color {
         Color { r: r, g: g, b: b }
     }
 
+    #[allow(dead_code)]
     pub fn black() -> Color {
         Color::rgb(0, 0, 0)
     }
@@ -247,15 +243,11 @@ pub fn line(image: &mut Screen, start: Point, end: Point, color: Color) {
     }
 }
 
-fn within_screen(image: &mut Screen, p: Point) -> bool {
-    let within_y = p.y >= 0 && p.y < HEIGHT as i64;
-    let within_x = p.x >= 0 && p.x < WIDTH as i64;
-    within_y && within_x
-}
-
 /// If the point `p` is within the width and height of `image`, plot `color` at `p`.
 pub fn plot_if_visible(image: &mut Screen, p: Point, color: Color) {
-    if within_screen(image, p) {
+    let within_x = p.x >= 0 && p.x < WIDTH as i64;
+    let within_y = p.y >= 0 && p.y < HEIGHT as i64;
+    if within_x && within_y {
         image.setxy(p.x as usize, p.y as usize, color);
     }
 }

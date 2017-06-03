@@ -5,7 +5,7 @@ use std::sync::mpsc::Sender;
 use parse::{ self, Command, Axis };
 use matrix::Matrix;
 use solid;
-use render::{ self, Screen, Color };
+use render::{ self, Screen };
 use ppm;
 use consts::*;
 
