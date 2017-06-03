@@ -1,3 +1,4 @@
+use std::mem::swap;
 use matrix::Matrix;
 use std::fmt;
 use consts::*;
@@ -71,14 +72,14 @@ pub fn edge_list(image: &mut Vec<Vec<Color>>, edges: &Matrix) {
     }
 }
 
-pub fn triangle_list(image: &mut Vec<Vec<Color>>, edges: &Matrix) {
+/*pub fn triangle_list(image: &mut Vec<Vec<Color>>, triangles: &Matrix) {
     let mut i = 0;
-    while i + 2 < edges.width() {
-        let pcol = edges.col(i);
+    while i + 2 < triangles.width() {
+        let pcol = triangles.col(i);
         let p = Point::xy(pcol[0] as i64, pcol[1] as i64);
-        let qcol = edges.col(i + 1);
+        let qcol = triangles.col(i + 1);
         let q = Point::xy(qcol[0] as i64, qcol[1] as i64);
-        let rcol = edges.col(i + 2);
+        let rcol = triangles.col(i + 2);
         let r = Point::xy(rcol[0] as i64, rcol[1] as i64);
         if r.vector_diff(p).clockwise_of(q.vector_diff(p)) {
             line(image, p, q, Color::white());
@@ -86,6 +87,87 @@ pub fn triangle_list(image: &mut Vec<Vec<Color>>, edges: &Matrix) {
             line(image, r, p, Color::white());
         }
         i += 3;
+    }
+}*/
+
+pub fn triangle_list(image: &mut Vec<Vec<Color>>, triangles: &Matrix) {
+    let mut i = 0;
+    while i + 2 < triangles.width() {
+        let pcol = triangles.col(i);
+        let p = Point::xy(pcol[0] as i64, pcol[1] as i64);
+        let qcol = triangles.col(i + 1);
+        let q = Point::xy(qcol[0] as i64, qcol[1] as i64);
+        let rcol = triangles.col(i + 2);
+        let r = Point::xy(rcol[0] as i64, rcol[1] as i64);
+        if r.vector_diff(p).clockwise_of(q.vector_diff(p)) {
+            scanline(image, pcol, qcol, rcol, Color::white());
+        }
+        i += 3;
+    }
+}
+
+/// Note: top, mid, and low are not required to be in any order.
+pub fn scanline(img: &mut Vec<Vec<Color>>, mut top: [f64; 4], mut mid: [f64; 4], mut low: [f64; 4], clr: Color) {
+    // Sort `top`, `mid`, and `low` into the order their names imply
+    if top[1] < mid[1] { swap(&mut top, &mut mid); }
+    if top[1] < low[1] { swap(&mut top, &mut low); }
+    if mid[1] < low[1] { swap(&mut mid, &mut low); }
+
+    // x0 is the x pos of the edge connecting `low` to `top`
+    let mut x0 = low[0];
+    let dx0 = if top[0] == low[0] {
+        0.0
+    } else {
+        (top[0] - low[0]) / (top[1] - low[1])
+    };
+
+    // x1 is the x pos of the edge connecting `low` to `mid`
+    let mut x1 = low[0];
+    let dx1 = if mid[0] == low[0] {
+        0.0
+    } else {
+        (mid[0] - low[0]) / (mid[1] - low[1])
+    };
+
+    for y in low[1] as i64 .. mid[1] as i64 {
+        flat_line(img, x0 as i64, x1 as i64, y, clr);
+        x0 += dx0;
+        x1 += dx1;
+    }
+
+    let mut x2 = mid[0];
+    let dx2 = if top[0] == mid[0] {
+        0.0
+    } else {
+        (top[0] - mid[0]) / (top[1] - mid[1])
+    };
+
+    for y in mid[1] as i64 .. top[1] as i64 {
+        flat_line(img, x0 as i64, x2 as i64, y, clr);
+        x0 += dx0;
+        x2 += dx2;
+    }
+}
+
+fn flat_line(img: &mut Vec<Vec<Color>>, mut x0: i64, mut x1: i64, y: i64, clr: Color) {
+    use std::cmp::{ min, max };
+    // Return if y is offscreen
+    if y < 0 || y >= HEIGHT as i64 {
+        return;
+    }
+    // Order x0 and x1
+    if x1 < x0 {
+        swap(&mut x0, &mut x1);
+    }
+    // Increment x1, as the inputs are inclusive and we'll want the upper
+    // bound be be exclusive for everything below
+    x1 += 1;
+    // Redefine variables as usizes and clamp x within the screen
+    let x0 = min(max(x0, 0), WIDTH as i64 - 1) as usize;
+    let x1 = min(max(x1, 0), WIDTH as i64 - 1) as usize;
+    let y = y as usize;
+    for x in x0..x1 {
+        img[HEIGHT - y - 1][x] = clr;
     }
 }
 
