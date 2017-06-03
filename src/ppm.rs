@@ -38,8 +38,10 @@ pub fn save_png(image: &Vec<Vec<Color>>, filename: &str) {
         .arg(&tmp_name)
         .arg(filename)
         .status().ok().unwrap();
-    let elapsed = start.elapsed();
-    if DEBUG { println!("Convert took: {}ms", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000); }
+    if DEBUG {
+        let elapsed = start.elapsed();
+        println!("Convert took: {}ms", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000);
+    }
     println!("Execution of `convert {} {}` exited with status: {}", &tmp_name, filename, status0);
 }
 
@@ -87,8 +89,8 @@ pub fn write_image(file: &mut File, image: &Vec<Vec<Color>>) {
             bufwriter.write(&[image[py][px].r, image[py][px].g, image[py][px].b]);
         }
     }
-    let elapsed = start.elapsed();
     if DEBUG {
+        let elapsed = start.elapsed();
         println!("Saving took: {}ms {}ns", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000, elapsed.subsec_nanos() as u64 % 1000000);
     }
 }
