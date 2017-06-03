@@ -55,7 +55,7 @@ pub fn save_png(image: &Vec<Vec<Color>>, filename: &str) {
     let tmp_name = format!("{}.ppm", filename);
     save_ppm(image, &tmp_name);
     let start = Instant::now();
-    let status0 = Command::new("C:\\Program Files\\ImageMagick-7.0.5-Q16\\convert")
+    let status0 = Command::new("convert")
         .arg(&tmp_name)
         .arg(filename)
         .status().ok().unwrap();

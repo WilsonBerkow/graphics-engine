@@ -34,7 +34,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Vec<Vec<render::Color>>>
                 }
                 let elapsed = start.elapsed();
                 if DEBUG { println!("Took: {}", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000); }
-                let filename = format!("anim\\{}{:0digits$}.png", basename, i, digits=digits_for_name);
+                let filename = format!("anim/{}{:0digits$}.png", basename, i, digits=digits_for_name);
                 tx.send((filename, screen));
             }
         },
