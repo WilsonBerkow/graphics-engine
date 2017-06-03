@@ -21,10 +21,6 @@ impl Color {
     pub fn white() -> Color {
         Color::rgb(255, 255, 255)
     }
-
-    pub fn fmt_ppm(&self) -> String {
-        format!("{} {} {}\n", self.r, self.g, self.b)
-    }
 }
 
 impl fmt::Display for Color {

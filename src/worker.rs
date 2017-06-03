@@ -1,5 +1,5 @@
 use std::thread::{ self, JoinHandle };
-use std::sync::mpsc::{ channel, Receiver, Sender };
+use std::sync::mpsc::Receiver;
 use std::sync::{ Arc, Mutex };
 
 use render::Color;
@@ -24,16 +24,13 @@ impl WorkerPool {
         let handle = thread::spawn(move || {
             let mrx = amrx.as_ref();
             loop {
-                let next;
-                {
-                    let lock = mrx.lock().unwrap();
-                    next = (*lock).iter().next();
-                }
-                //while let Some((filename, screen)) = (*mrx.lock().unwrap()).iter().next() {
+                let lock = mrx.lock().unwrap();
+                let next = (*lock).iter().next();
+                drop(lock);
                 if let Some((filename, screen)) = next {
                     ppm::save_png(&screen, &filename);
                 } else {
-                    return;
+                    break;
                 }
             }
         });

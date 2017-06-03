@@ -5,10 +5,6 @@ use std::io::prelude::*;
 use std::io::BufWriter;
 use std::process::Command;
 
-use std::borrow::Borrow;
-use std::thread::JoinHandle;
-use std::thread;
-use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
 
@@ -32,23 +28,6 @@ pub fn save_ppm(image: &Vec<Vec<Color>>, filename: &str) {
 
 pub fn spawn_saver(rx: Receiver<(String, Box<Vec<Vec<Color>>>)>) -> WorkerPool {
     WorkerPool::new(rx, 8)
-//    thread::spawn(move || {
-//        for (name, screen) in rx.par_iter() {
-//            save_png(&screen, &name);
-//        }
-//    })
-    //let arx = Arc::new(rx);
-    //let handles = vec![];
-    //for i in 0..3 {
-    //    let here_arx = arx.clone();
-    //    handles.push(thread::spawn(move || {
-    //        for (name, screen) in here_arx.borrow() {
-    //            let nm: String = name;
-    //            save_png(&screen, &nm);
-    //        }
-    //    }));
-    //}
-    //handles
 }
 
 pub fn save_png(image: &Vec<Vec<Color>>, filename: &str) {
@@ -107,5 +86,7 @@ pub fn write_image(file: &mut File, image: &Vec<Vec<Color>>) {
         }
     }
     let elapsed = start.elapsed();
-    if DEBUG { println!("Saving took: {}ms {}ns", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000, elapsed.subsec_nanos() as u64 % 1000000); }
+    if DEBUG {
+        println!("Saving took: {}ms {}ns", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000, elapsed.subsec_nanos() as u64 % 1000000);
+    }
 }
