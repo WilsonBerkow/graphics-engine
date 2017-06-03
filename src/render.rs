@@ -21,6 +21,7 @@ impl Screen {
         Box::new(Screen(data))
     }
 
+    #[allow(dead_code)]
     pub fn getxy(&self, x: usize, y: usize) -> Color {
         let row = HEIGHT - y - 1;
         let i = row * SCREEN_ROW_SIZE + x * PX_SIZE;

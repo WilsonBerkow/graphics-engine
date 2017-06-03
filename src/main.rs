@@ -42,13 +42,22 @@ fn main() {
                     let handle = ppm::spawn_saver(rx);
                     ppm::mkdirp("anim");
                     let start = Instant::now();
-                    if let Err(msg) = exec::run_script(&s, tx) {
-                        println!("Error!\n{}", msg);
+                    let frame_info: Option<(usize, &str)>;
+                    match exec::run_script(&s, tx) {
+                        Err(msg) => {
+                            println!("Error!\n{}", msg);
+                            frame_info = None;
+                        },
+                        Ok(opt_frame_info) => {
+                            frame_info = opt_frame_info;
+                        }
                     }
                     handle.join();
                     let elapsed = start.elapsed();
                     println!("Total time: {}s {}ms", elapsed.as_secs(), elapsed.subsec_nanos() as u64 / 1000000);
-                    ppm::clean_up();
+                    if let Some((frames, basename)) = frame_info {
+                        ppm::clean_up_anim_ppms(frames, basename);
+                    }
                 },
                 Err(e) => {
                     panic!("Error reading text in ./script: {}", e);

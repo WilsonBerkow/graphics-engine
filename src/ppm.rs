@@ -53,12 +53,15 @@ pub fn mkdirp(name: &str) {
     println!("Execution of `mkdir {}` exited with status: {}", name, status);
 }
 
-pub fn clean_up() {
-    // TODO
-    //let status1 = Command::new("rm")
-    //    .arg("*.ppm")
-    //    .status().ok().unwrap();
-    //println!("Execution of `rm .temp.ppm` exited with status: {}", status1);
+pub fn clean_up_anim_ppms(frames: usize, basename: &str) {
+    use exec::anim_frame_filename;
+    for i in 0..frames {
+        let filename = format!("{}.ppm", anim_frame_filename(frames, basename, i));
+        let status = Command::new("rm")
+            .arg(&filename)
+            .status().ok().unwrap();
+        println!("Execution of `rm {}` exited with status: {}", &filename, status);
+    }
 }
 
 #[allow(dead_code)]

@@ -10,7 +10,9 @@ use ppm;
 use consts::*;
 
 // TODO: clean up w/ regard to distinction between single-image and animation rendering
-pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<(), String> {
+// Ok-component of return value is None if only a static frame was generated, and Some((frames,
+// basename)) if an animation was made.
+pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<Option<(usize, &str)>, String> {
     let cmds = parse::parse(script)?;
 
     match get_anim_data(&cmds) {
@@ -20,7 +22,6 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<(),
             }
 
             let basename = anim_data.basename.unwrap_or("anim");
-            let digits_for_name = dec_digits(anim_data.frames);
 
             // Render and save each frame:
             for i in 0..anim_data.frames {
@@ -36,9 +37,10 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<(),
                     let elapsed = start.elapsed();
                     println!("Took: {}", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000);
                 }
-                let filename = format!("anim/{}{:0digits$}.png", basename, i, digits=digits_for_name);
+                let filename = anim_frame_filename(anim_data.frames, basename, i);
                 tx.send((filename, screen));
             }
+            Ok(Some((anim_data.frames, basename)))
         },
         None => {
             let mut screen = Screen::new_boxed_black();
@@ -46,12 +48,18 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<(),
             for cmd in &cmds {
                 run_cmd(&mut screen, &mut transforms, None, cmd)?;
             }
+            Ok(None)
         }
     }
-    Ok(())
 }
 
-fn dec_digits(mut n: usize) -> usize {
+// Generate the filename used for the nth frame of an animation
+pub fn anim_frame_filename(frames: usize, basename: &str, n: usize) -> String {
+    let digits_for_name = decimal_digits(frames);
+    format!("anim/{}{:0digits$}.png", basename, n, digits=digits_for_name)
+}
+
+fn decimal_digits(mut n: usize) -> usize {
     let mut count = 0;
     while n > 0 {
         n /= 10;
