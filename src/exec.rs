@@ -56,7 +56,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<Opt
 // Generate the filename used for the nth frame of an animation
 pub fn anim_frame_filename(frames: usize, basename: &str, n: usize) -> String {
     let digits_for_name = decimal_digits(frames);
-    format!("anim/{}{:0digits$}.png", basename, n, digits=digits_for_name)
+    format!("anim\\{}{:0digits$}.png", basename, n, digits=digits_for_name)
 }
 
 fn decimal_digits(mut n: usize) -> usize {
