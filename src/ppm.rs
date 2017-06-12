@@ -26,7 +26,7 @@ pub fn save_ppm(image: &Screen, filename: &str) {
     write_image(&mut file, &image);
 }
 
-pub fn spawn_saver(rx: Receiver<(String, Box<Screen>)>) -> WorkerPool {
+pub fn spawn_saver(rx: Receiver<(String, Screen)>) -> WorkerPool {
     WorkerPool::new(rx, 8)
 }
 

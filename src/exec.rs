@@ -12,7 +12,7 @@ use consts::*;
 // TODO: clean up w/ regard to distinction between single-image and animation rendering
 // Ok-component of return value is None if only a static frame was generated, and Some((frames,
 // basename)) if an animation was made.
-pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<Option<(usize, &str)>, String> {
+pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(usize, &str)>, String> {
     let cmds = parse::parse(script)?;
 
     match get_anim_data(&cmds) {
@@ -25,7 +25,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<Opt
 
             // Render and save each frame:
             for i in 0..anim_data.frames {
-                let mut screen = Screen::new_boxed_black();
+                let mut screen = Screen::new();
                 let start = Instant::now();
                 let mut knobvals = knobs_for_frame(i, &anim_data.varies);
                 let mut transforms = vec![Matrix::identity()];
@@ -43,7 +43,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Box<Screen>)>) -> Result<Opt
             Ok(Some((anim_data.frames, basename)))
         },
         None => {
-            let mut screen = Screen::new_boxed_black();
+            let mut screen = Screen::new();
             let mut transforms = vec![Matrix::identity()];
             for cmd in &cmds {
                 run_cmd(&mut screen, &mut transforms, None, cmd)?;

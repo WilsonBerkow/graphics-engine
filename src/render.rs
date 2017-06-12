@@ -4,21 +4,20 @@ use std::fmt;
 use consts::*;
 
 // row-major order
-pub struct Screen([u8; WIDTH * HEIGHT * PX_SIZE]);
+// The size of the [u8] is WIDTH * HEIGH T* PX_SIZE. A slice is used because
+// allocating an array directly on the heap seems to require excessive jankiness.
+pub struct Screen(Box<[u8]>);
 
 const SCREEN_ROW_SIZE: usize = WIDTH * PX_SIZE;
 
 impl Screen {
-    pub fn new_boxed_black() -> Box<Screen> {
-        // TODO: when the heap API is stabilized, use that to skip the stack
-        // and allocate on the heap directly
-        // There are ways around it currently but they're jank.
-        // One issue I ran into (would be an issue with heap API) is
-        // converting a Box<[u8]> to a Box<[u8; ...]> (and then to a Box<Screen>).
-        // This is probably due to nuances in the representation of slices,
-        // which I didn't have time to research.
-        let data = [0u8; WIDTH * HEIGHT * PX_SIZE];
-        Box::new(Screen(data))
+    pub fn new() -> Screen {
+        // Use a Vec to allocate on the heap because Rust's heap api is
+        // unstable (grumble grumble...).
+        // TODO: either use an array (not slice) or allow varying screen sizes
+        let vec_data = vec![0u8; WIDTH * HEIGHT * PX_SIZE];
+        let data: Box<[u8]> = vec_data.into_boxed_slice();
+        Screen(data)
     }
 
     #[allow(dead_code)]

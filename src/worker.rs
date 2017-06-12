@@ -7,11 +7,11 @@ use ppm;
 
 pub struct WorkerPool {
     pub threads: Vec<JoinHandle<()>>,
-    rx: Arc<Mutex<Receiver<(String, Box<Screen>)>>>,
+    rx: Arc<Mutex<Receiver<(String, Screen)>>>,
 }
 
 impl WorkerPool {
-    pub fn new(rx: Receiver<(String, Box<Screen>)>, n: usize) -> WorkerPool {
+    pub fn new(rx: Receiver<(String, Screen)>, n: usize) -> WorkerPool {
         let mut w = WorkerPool { threads: vec![], rx: Arc::new(Mutex::new(rx)) };
         for _ in 0..n {
             w.add_worker();
