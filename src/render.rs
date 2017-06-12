@@ -155,7 +155,7 @@ pub fn triangle_list(image: &mut Screen, triangles: &Matrix) {
     }
 }
 
-/// Note: top, mid, and low are not required to be in any order.
+/// Note: top, mid, and low are not required to be passed in any order.
 pub fn scanline(img: &mut Screen, mut top: [f64; 4], mut mid: [f64; 4], mut low: [f64; 4], clr: Color) {
     // Sort `top`, `mid`, and `low` into the order their names imply
     if top[1] < mid[1] { swap(&mut top, &mut mid); }
