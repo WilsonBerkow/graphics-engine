@@ -3,6 +3,9 @@ compile: clean main.exe
 main.exe:
 	rustc -C opt-level=3 src/main.rs
 
+d: clean
+	rustc src/main.rs
+
 run:
 	mkdir -p anim
 	./main

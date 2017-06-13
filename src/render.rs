@@ -50,6 +50,28 @@ impl Screen {
     }
 }
 
+// length of [f64] is WIDTH * HEIGHT
+pub struct ZBuffer(Box<[f64]>);
+
+impl ZBuffer {
+    pub fn new() -> ZBuffer {
+        use std::f64::INFINITY;
+        let vec_data = vec![-INFINITY; WIDTH * HEIGHT];
+        ZBuffer(vec_data.into_boxed_slice())
+    }
+
+    pub fn plot(&mut self, x: usize, y: usize, z: f64) -> bool {
+        let row = HEIGHT - y - 1;
+        let i = row * WIDTH + x;
+        if self.0[i] < z {
+            self.0[i] = z;
+            true
+        } else {
+            false
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Color {
     pub r: u8,
@@ -60,6 +82,10 @@ pub struct Color {
 impl Color {
     pub fn rgb(r: u8, g: u8, b: u8) -> Color {
         Color { r: r, g: g, b: b }
+    }
+
+    pub fn grayscale(v: u8) -> Color {
+        Color { r: v, g: v, b: v }
     }
 
     #[allow(dead_code)]
@@ -177,10 +203,31 @@ pub fn scanline(img: &mut Screen, mut top: [f64; 4], mut mid: [f64; 4], mut low:
         (mid[0] - low[0]) / (mid[1] - low[1])
     };
 
+    let mut z0 = low[2];
+    let mut z1 = low[2];
+
+    let dz0 = if top[1] == low[1] {
+        0.0
+    } else {
+        (top[2] - low[2]) / (top[1] - low[1])
+    };
+
+    let dz1 = if mid[1] == low[1] {
+        0.0
+    } else {
+        (mid[2] - low[2]) / (mid[1] - low[1])
+    };
+
+    let mut z_buffer = ZBuffer::new();
+
+    let mut dz;
     for y in low[1] as i64 .. mid[1] as i64 {
-        flat_line(img, x0 as i64, x1 as i64, y, clr);
+        dz = if x1 == x0 { 0.0 } else { (z1 - z0) / (x1 - x0) };
+        flat_line(img, &mut z_buffer, x0 as i64, x1 as i64, y, z0, dz, clr);
         x0 += dx0;
         x1 += dx1;
+        z0 += dz0;
+        z1 += dz1;
     }
 
     let mut x2 = mid[0];
@@ -190,22 +237,50 @@ pub fn scanline(img: &mut Screen, mut top: [f64; 4], mut mid: [f64; 4], mut low:
         (top[0] - mid[0]) / (top[1] - mid[1])
     };
 
+    let mut z2 = mid[2];
+    let dz2 = if top[1] == mid[1] {
+        0.0
+    } else {
+        (top[2] - mid[2]) / (top[1] - mid[1])
+    };
+    let mut dz;
     for y in mid[1] as i64 .. top[1] as i64 {
-        flat_line(img, x0 as i64, x2 as i64, y, clr);
+        dz = if x0 == x2 { 0.0 } else { (z2 - z0) / (x2 - x0) };
+        flat_line(img, &mut z_buffer, x0 as i64, x2 as i64, y, z0, dz, clr);
         x0 += dx0;
         x2 += dx2;
+        z0 += dz0;
+        z2 += dz2;
     }
 }
 
-fn flat_line(img: &mut Screen, mut x0: i64, mut x1: i64, y: i64, clr: Color) {
+#[allow(dead_code)]
+fn fclamp(min: f64, x: f64, max: f64) -> f64 {
+    if x < min {
+        min
+    } else if x > max {
+        max
+    } else {
+        x
+    }
+}
+
+fn flat_line(img: &mut Screen, z_buffer: &mut ZBuffer, mut x0: i64, mut x1: i64, y: i64, given_z0: f64, given_dz: f64, clr: Color) {
     use std::cmp::{ min, max };
     // Return if y is offscreen
     if y < 0 || y >= HEIGHT as i64 {
         return;
     }
-    // Order x0 and x1
+    // Order x0 and x1, and z0 and dz (z0 is the z coord at x0)
+    let z0;
+    let dz;
     if x1 < x0 {
         swap(&mut x0, &mut x1);
+        z0 = given_z0 + given_dz * (x1 - x0) as f64;
+        dz = -given_dz;
+    } else {
+        z0 = given_z0;
+        dz = given_dz;
     }
     // Increment x1, as the inputs are inclusive and we'll want the upper
     // bound be be exclusive for everything below
@@ -214,8 +289,14 @@ fn flat_line(img: &mut Screen, mut x0: i64, mut x1: i64, y: i64, clr: Color) {
     let x0 = min(max(x0, 0), WIDTH as i64 - 1) as usize;
     let x1 = min(max(x1, 0), WIDTH as i64 - 1) as usize;
     let y = y as usize;
+    let mut z = z0;
     for x in x0..x1 {
-        img.setxy(x, y, clr);
+        if z_buffer.plot(x, y, z) {
+            img.setxy(x, y, clr);
+            // debug_clr to show Z, for debugging. TODO: remove this comment once it certainly is correct
+            // let debug_clr = Color::grayscale(fclamp(0.0, (z + 60.0) / 200.0 * 255.0, 255.0) as u8);
+        }
+        z += dz;
     }
 }
 

@@ -10,12 +10,15 @@ vary spinny 0 49 0.0 1.0
 #vary upy 40 49 0.8 1.2
 
 push
-move 350 0 0 righty
-move 200 0 0
-rotate z -120 righty
-move -200 200 0
-rotate z 20
-rotate x -10800 spinny
-scale 1 1 1 biggy
-scale 2 1 1
-sphere 0 0 0 25
+move 200 200 0
+rotate y 360 spinny
+box -50 -50 -50 100 100 100
+#move 350 0 0 righty
+#move 200 0 0
+#rotate z -120 righty
+#move -200 200 0
+#rotate z 20
+#rotate x -10800 spinny
+#scale 1 1 1 biggy
+#scale 2 1 1
+#sphere 0 0 0 25
