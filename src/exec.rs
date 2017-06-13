@@ -112,7 +112,7 @@ fn knob_val<'a>(knobs: &HashMap<&'a str, f64>, knob: &'a str) -> f64 {
     match knobs.get(knob) {
         Some(v) => *v,
         None => {
-            panic!("Knob '{}' not defined for every frame");
+            panic!("Knob '{}' not defined for every frame", knob);
         },
     }
 }
