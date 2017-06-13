@@ -84,8 +84,9 @@ impl Color {
         Color { r: r, g: g, b: b }
     }
 
+    #[allow(dead_code)]
     pub fn grayscale(v: u8) -> Color {
-        Color { r: v, g: v, b: v }
+        Color::rgb(v, v, v)
     }
 
     #[allow(dead_code)]
@@ -95,6 +96,17 @@ impl Color {
 
     pub fn white() -> Color {
         Color::rgb(255, 255, 255)
+    }
+
+    pub fn arbitrary(i: usize) -> Color {
+        // Rust's `rand` is an external crate. As my initial instructions for
+        // installation of rust on Mr. DW's machine excluded Cargo, I'm not
+        // using external libraries. This serves the purpose well enough.
+        Color::rgb(
+            (i * i * (100 - i)) as u8,
+            (i * i * i) as u8,
+            ((200 - i) * (150 - i)) as u8
+        )
     }
 }
 
@@ -174,7 +186,7 @@ pub fn triangle_list(image: &mut Screen, triangles: &Matrix) {
         let rcol = triangles.col(i + 2);
         let r = Point::xy(rcol[0] as i64, rcol[1] as i64);
         if r.vector_diff(p).clockwise_of(q.vector_diff(p)) {
-            scanline(image, pcol, qcol, rcol, Color::white());
+            scanline(image, pcol, qcol, rcol, Color::arbitrary(i));
         }
         i += 3;
     }
