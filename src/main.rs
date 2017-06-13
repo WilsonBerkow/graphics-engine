@@ -71,7 +71,7 @@ fn main() {
                     handle.join();
 
                     let elapsed = start.elapsed();
-                    println!("Total time to create png files: {}", display_duration(elapsed));
+                    println!("Elapsed time, after generating frames and converting to PNGs: {}", display_duration(elapsed));
 
                     // If (multiple) frames were successfully generated, make a GIF and delete the rubbish
                     if let Some((frames, basename)) = frame_info {
@@ -80,7 +80,7 @@ fn main() {
                     }
 
                     let elapsed_after_cleanup = start.elapsed();
-                    println!("Total time, including clean up: {}", display_duration(elapsed_after_cleanup));
+                    println!("Elapsed time, after cleaning up and converting to GIF: {}", display_duration(elapsed_after_cleanup));
                 },
                 Err(e) => {
                     panic!("Error reading text in ./script: {}", e);
