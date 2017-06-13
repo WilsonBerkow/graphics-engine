@@ -166,7 +166,7 @@ fn transform_last(mat: &Matrix, transforms: &mut Vec<Matrix>) {
     transforms[len - 1] = &transforms[len - 1] * mat;
 }
 
-fn run_cmd<'a, 'b, 'c, 'd, 'e, 'f>(screen: &'a mut Screen, z_buffer: &'f mut ZBuffer, transforms: &'b mut Vec<Matrix>, knobs: Option<&'c mut HashMap<&'d str, f64>>, cmd: &'e Command<'d>) -> Result<(), String> {
+fn run_cmd<'a>(screen: &mut Screen, z_buffer: &mut ZBuffer, transforms: &mut Vec<Matrix>, knobs: Option<&mut HashMap<&'a str, f64>>, cmd: &Command<'a>) -> Result<(), String> {
     match cmd {
         &Command::Line { x0, y0, z0, x1, y1, z1 } => {
             let mut edges = Matrix::empty();
