@@ -73,8 +73,9 @@ fn main() {
                     let elapsed = start.elapsed();
                     println!("Total time to create png files: {}", display_duration(elapsed));
 
-                    // If (multiple) frames were successfully generated, delete the rubbish
+                    // If (multiple) frames were successfully generated, make a GIF and delete the rubbish
                     if let Some((frames, basename)) = frame_info {
+                        ppm::convert_gif(frames, basename);
                         ppm::clean_up_anim_ppms(frames, basename);
                     }
 

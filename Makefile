@@ -8,8 +8,6 @@ d: clean
 
 run:
 	./main
-	if [ -f anim/football.gif ]; then rm anim/football.gif; fi
-	convert anim/*.png anim/football.gif
 
 clean:
 	rm -f main

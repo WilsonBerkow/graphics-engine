@@ -34,7 +34,7 @@ pub fn save_png(image: &Screen, filename: &str) {
     let tmp_name = format!("{}.ppm", filename);
     save_ppm(image, &tmp_name);
     let start = Instant::now();
-    let status0 = Command::new("convert")
+    let status = Command::new("convert")
         .arg(&tmp_name)
         .arg(filename)
         .status().expect("failed to execute convert command");
@@ -42,8 +42,8 @@ pub fn save_png(image: &Screen, filename: &str) {
         let elapsed = start.elapsed();
         println!("Convert took: {}ms", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000);
     }
-    if !status0.success() {
-        println!("Execution of `convert {} {}` exited with status: {}", &tmp_name, filename, status0);
+    if !status.success() {
+        println!("Execution of `convert {} {}` failed with status: {}", &tmp_name, filename, status);
     }
 }
 
@@ -54,6 +54,34 @@ pub fn mkdirp(name: &str) {
         .status().expect("failed to execute mkdir command");
     if !status.success() {
         println!("Execution of `mkdir {}` failed with status: {}", name, status);
+    }
+}
+
+pub fn convert_gif(frames: usize, basename: &str) {
+    use exec::anim_frame_filename;
+    let mut args = Vec::with_capacity(frames + 1);
+    for i in 0..frames {
+        let name = anim_frame_filename(frames, basename, i);
+        args.push(name);
+    }
+    let gif_path = format!("anim/{}.gif", basename);
+    args.push(gif_path.clone());
+
+    // Remove the gif file
+    let status0 = Command::new("rm")
+        .arg("-f")
+        .arg("--")
+        .arg(&gif_path)
+        .status().expect("failed to execute rm command");
+    if !status0.success() {
+        println!("Execution of `rm anim/{}.gif` failed with status0: {}", basename, status0);
+    }
+
+    let status1 = Command::new("convert")
+        .args(&*args.into_boxed_slice())
+        .status().expect("failed to execute convert command");
+    if !status1.success() {
+        println!("Execution of `convert [... frames ...] {}.gif` failed with status1: {}", basename, status1);
     }
 }
 
