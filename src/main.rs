@@ -64,14 +64,14 @@ fn main() {
                         Ok(opt_frame_info) => {
                             frame_info = opt_frame_info;
                             let elapsed = start.elapsed();
-                            println!("Time to generate frames in-memory: {}", display_duration(elapsed));
+                            println!("Time to generate frames in-memory: {} (includes some time saving images)", display_duration(elapsed));
                         }
                     }
                     // Wait for worker threads to finish saving images
                     handle.join();
 
                     let elapsed = start.elapsed();
-                    println!("Total time: {}", display_duration(elapsed));
+                    println!("Total time to create png files: {}", display_duration(elapsed));
 
                     // If (multiple) frames were successfully generated, delete the rubbish
                     if let Some((frames, basename)) = frame_info {

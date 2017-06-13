@@ -37,20 +37,24 @@ pub fn save_png(image: &Screen, filename: &str) {
     let status0 = Command::new("convert")
         .arg(&tmp_name)
         .arg(filename)
-        .status().ok().unwrap();
+        .status().expect("failed to execute convert command");
     if DEBUG {
         let elapsed = start.elapsed();
         println!("Convert took: {}ms", elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000);
     }
-    println!("Execution of `convert {} {}` exited with status: {}", &tmp_name, filename, status0);
+    if !status0.success() {
+        println!("Execution of `convert {} {}` exited with status: {}", &tmp_name, filename, status0);
+    }
 }
 
 pub fn mkdirp(name: &str) {
     let status = Command::new("mkdir")
         .arg("-p")
         .arg(name)
-        .status().ok().unwrap();
-    println!("Execution of `mkdir {}` exited with status: {}", name, status);
+        .status().expect("failed to execute mkdir command");
+    if !status.success() {
+        println!("Execution of `mkdir {}` failed with status: {}", name, status);
+    }
 }
 
 pub fn clean_up_anim_ppms(frames: usize, basename: &str) {
@@ -59,8 +63,10 @@ pub fn clean_up_anim_ppms(frames: usize, basename: &str) {
         let filename = format!("{}.ppm", anim_frame_filename(frames, basename, i));
         let status = Command::new("rm")
             .arg(&filename)
-            .status().ok().unwrap();
-        println!("Execution of `rm {}` exited with status: {}", &filename, status);
+            .status().expect("failed to execute rm command");
+        if !status.success() {
+            println!("Execution of `rm {}` failed with status: {}", &filename, status);
+        }
     }
 }
 
