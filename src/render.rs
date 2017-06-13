@@ -1,6 +1,8 @@
 use std::mem::swap;
-use matrix::Matrix;
 use std::fmt;
+
+use exec::LightingData;
+use matrix::Matrix;
 use consts::*;
 
 // row-major order
@@ -80,7 +82,7 @@ impl ZBuffer {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -123,6 +125,8 @@ impl fmt::Display for Color {
         write!(f, "({}, {}, {})", self.r, self.g, self.b)
     }
 }
+
+// TODO: impl Add for Color + Color
 
 #[derive(Clone, Copy)]
 pub struct Point {
@@ -184,7 +188,21 @@ pub fn edge_list(image: &mut Screen, edges: &Matrix) {
     }
 }*/
 
-pub fn triangle_list(image: &mut Screen, z_buffer: &mut ZBuffer, triangles: &Matrix) {
+fn fclamp_u8(f: f64) -> u8 {
+    if f > 255.0 {
+        255
+    } else if f < 0.0 {
+        0
+    } else {
+        f as u8
+    }
+}
+
+pub fn triangle_list(image: &mut Screen, z_buffer: &mut ZBuffer, triangles: &Matrix, lighting: &LightingData) {
+    let clr = match lighting.ambient {
+        Some(c) => (c.0 * 1.0, c.1 * 1.0, c.2 * 1.0),
+        None => (0.0, 0.0, 0.0)
+    };
     let mut i = 0;
     while i + 2 < triangles.width() {
         let pcol = triangles.col(i);
@@ -194,7 +212,11 @@ pub fn triangle_list(image: &mut Screen, z_buffer: &mut ZBuffer, triangles: &Mat
         let rcol = triangles.col(i + 2);
         let r = Point::xy(rcol[0] as i64, rcol[1] as i64);
         if r.vector_diff(p).clockwise_of(q.vector_diff(p)) {
-            scanline(image, z_buffer, pcol, qcol, rcol, Color::arbitrary(i));
+            scanline(image, z_buffer, pcol, qcol, rcol, Color {
+                r: fclamp_u8(clr.0),
+                g: fclamp_u8(clr.1),
+                b: fclamp_u8(clr.2),
+            });
         }
         i += 3;
     }
