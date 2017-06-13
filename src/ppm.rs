@@ -27,7 +27,7 @@ pub fn save_ppm(image: &Screen, filename: &str) {
 }
 
 pub fn spawn_saver(rx: Receiver<(String, Screen)>) -> WorkerPool {
-    WorkerPool::new(rx, 8)
+    WorkerPool::new(rx, NUM_WORKERS)
 }
 
 pub fn save_png(image: &Screen, filename: &str) {

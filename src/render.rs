@@ -218,6 +218,7 @@ pub fn scanline(img: &mut Screen, mut top: [f64; 4], mut mid: [f64; 4], mut low:
         (mid[2] - low[2]) / (mid[1] - low[1])
     };
 
+    // TODO: reuse z_buffer for multiple frames
     let mut z_buffer = ZBuffer::new();
 
     let mut dz;

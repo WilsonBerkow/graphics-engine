@@ -29,6 +29,8 @@ use std::io::prelude::*;
 use std::sync::mpsc::channel;
 use std::time::Instant;
 
+use consts::*;
+
 fn main() {
     match File::open("script") {
         Err(e) => {
@@ -43,6 +45,7 @@ fn main() {
                     // into several worker threads for saving frames to a file.
                     let (tx, rx) = channel();
                     let handle = ppm::spawn_saver(rx);
+                    println!("Using {} worker threads to save and convert frames", NUM_WORKERS);
 
                     // Make `anim` directory unless it exists
                     ppm::mkdirp("anim");
