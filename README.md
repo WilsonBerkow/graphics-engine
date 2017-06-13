@@ -14,5 +14,6 @@ run the following to install rust:
 ## Compile and run
 
 ```
+$ make
 $ make run
 ```
