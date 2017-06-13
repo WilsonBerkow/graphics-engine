@@ -50,6 +50,7 @@ impl Screen {
     }
 }
 
+// row-major order
 // length of [f64] is WIDTH * HEIGHT
 pub struct ZBuffer(Box<[f64]>);
 
@@ -58,6 +59,13 @@ impl ZBuffer {
         use std::f64::INFINITY;
         let vec_data = vec![-INFINITY; WIDTH * HEIGHT];
         ZBuffer(vec_data.into_boxed_slice())
+    }
+
+    pub fn clear(&mut self) {
+        use std::f64::INFINITY;
+        for i in 0..WIDTH * HEIGHT {
+            self.0[i] = -INFINITY;
+        }
     }
 
     pub fn plot(&mut self, x: usize, y: usize, z: f64) -> bool {
@@ -176,7 +184,7 @@ pub fn edge_list(image: &mut Screen, edges: &Matrix) {
     }
 }*/
 
-pub fn triangle_list(image: &mut Screen, triangles: &Matrix) {
+pub fn triangle_list(image: &mut Screen, z_buffer: &mut ZBuffer, triangles: &Matrix) {
     let mut i = 0;
     while i + 2 < triangles.width() {
         let pcol = triangles.col(i);
@@ -186,14 +194,14 @@ pub fn triangle_list(image: &mut Screen, triangles: &Matrix) {
         let rcol = triangles.col(i + 2);
         let r = Point::xy(rcol[0] as i64, rcol[1] as i64);
         if r.vector_diff(p).clockwise_of(q.vector_diff(p)) {
-            scanline(image, pcol, qcol, rcol, Color::arbitrary(i));
+            scanline(image, z_buffer, pcol, qcol, rcol, Color::arbitrary(i));
         }
         i += 3;
     }
 }
 
 /// Note: top, mid, and low are not required to be passed in any order.
-pub fn scanline(img: &mut Screen, mut top: [f64; 4], mut mid: [f64; 4], mut low: [f64; 4], clr: Color) {
+pub fn scanline(img: &mut Screen, z_buffer: &mut ZBuffer, mut top: [f64; 4], mut mid: [f64; 4], mut low: [f64; 4], clr: Color) {
     // Sort `top`, `mid`, and `low` into the order their names imply
     if top[1] < mid[1] { swap(&mut top, &mut mid); }
     if top[1] < low[1] { swap(&mut top, &mut low); }
@@ -230,13 +238,10 @@ pub fn scanline(img: &mut Screen, mut top: [f64; 4], mut mid: [f64; 4], mut low:
         (mid[2] - low[2]) / (mid[1] - low[1])
     };
 
-    // TODO: reuse z_buffer for multiple frames
-    let mut z_buffer = ZBuffer::new();
-
     let mut dz;
     for y in low[1] as i64 .. mid[1] as i64 {
         dz = if x1 == x0 { 0.0 } else { (z1 - z0) / (x1 - x0) };
-        flat_line(img, &mut z_buffer, x0 as i64, x1 as i64, y, z0, dz, clr);
+        flat_line(img, z_buffer, x0 as i64, x1 as i64, y, z0, dz, clr);
         x0 += dx0;
         x1 += dx1;
         z0 += dz0;
@@ -259,7 +264,7 @@ pub fn scanline(img: &mut Screen, mut top: [f64; 4], mut mid: [f64; 4], mut low:
     let mut dz;
     for y in mid[1] as i64 .. top[1] as i64 {
         dz = if x0 == x2 { 0.0 } else { (z2 - z0) / (x2 - x0) };
-        flat_line(img, &mut z_buffer, x0 as i64, x2 as i64, y, z0, dz, clr);
+        flat_line(img, z_buffer, x0 as i64, x2 as i64, y, z0, dz, clr);
         x0 += dx0;
         x2 += dx2;
         z0 += dz0;

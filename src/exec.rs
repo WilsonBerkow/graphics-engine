@@ -5,7 +5,7 @@ use std::sync::mpsc::Sender;
 use parse::{ self, Command, Axis };
 use matrix::Matrix;
 use solid;
-use render::{ self, Screen };
+use render::{ self, Screen, ZBuffer };
 use ppm;
 use consts::*;
 
@@ -14,6 +14,8 @@ use consts::*;
 // basename)) if an animation was made.
 pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(usize, &str)>, String> {
     let cmds = parse::parse(script)?;
+
+    let mut z_buffer = ZBuffer::new();
 
     match get_anim_data(&cmds) {
         Some(anim_data) => {
@@ -25,13 +27,16 @@ pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(
 
             // Render and save each frame:
             for i in 0..anim_data.frames {
+                if i != 0 {
+                    z_buffer.clear();
+                }
                 let mut screen = Screen::new();
                 let start = Instant::now();
                 let mut knobvals = knobs_for_frame(i, &anim_data.varies);
                 let mut transforms = vec![Matrix::identity()];
                 screen.clear_black();
                 for cmd in &cmds {
-                    run_cmd(&mut screen, &mut transforms, Some(&mut knobvals), cmd)?;
+                    run_cmd(&mut screen, &mut z_buffer, &mut transforms, Some(&mut knobvals), cmd)?;
                 }
                 if DEBUG {
                     let elapsed = start.elapsed();
@@ -46,7 +51,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(
             let mut screen = Screen::new();
             let mut transforms = vec![Matrix::identity()];
             for cmd in &cmds {
-                run_cmd(&mut screen, &mut transforms, None, cmd)?;
+                run_cmd(&mut screen, &mut z_buffer, &mut transforms, None, cmd)?;
             }
             Ok(None)
         }
@@ -161,7 +166,7 @@ fn transform_last(mat: &Matrix, transforms: &mut Vec<Matrix>) {
     transforms[len - 1] = &transforms[len - 1] * mat;
 }
 
-fn run_cmd<'a, 'b, 'c, 'd, 'e>(screen: &'a mut Screen, transforms: &'b mut Vec<Matrix>, knobs: Option<&'c mut HashMap<&'d str, f64>>, cmd: &'e Command<'d>) -> Result<(), String> {
+fn run_cmd<'a, 'b, 'c, 'd, 'e, 'f>(screen: &'a mut Screen, z_buffer: &'f mut ZBuffer, transforms: &'b mut Vec<Matrix>, knobs: Option<&'c mut HashMap<&'d str, f64>>, cmd: &'e Command<'d>) -> Result<(), String> {
     match cmd {
         &Command::Line { x0, y0, z0, x1, y1, z1 } => {
             let mut edges = Matrix::empty();
@@ -179,7 +184,7 @@ fn run_cmd<'a, 'b, 'c, 'd, 'e>(screen: &'a mut Screen, transforms: &'b mut Vec<M
             let mut triangles = Matrix::empty();
             solid::rect_prism(&mut triangles, x, y, z, w, h, d);
             triangles = last(&transforms) * &triangles;
-            render::triangle_list(screen, &triangles);
+            render::triangle_list(screen, z_buffer, &triangles);
             Ok(())
         },
 
@@ -187,7 +192,7 @@ fn run_cmd<'a, 'b, 'c, 'd, 'e>(screen: &'a mut Screen, transforms: &'b mut Vec<M
             let mut triangles = Matrix::empty();
             solid::sphere(&mut triangles, x, y, z, r);
             triangles = last(&transforms) * &triangles;
-            render::triangle_list(screen, &triangles);
+            render::triangle_list(screen, z_buffer, &triangles);
             Ok(())
         },
 
@@ -195,7 +200,7 @@ fn run_cmd<'a, 'b, 'c, 'd, 'e>(screen: &'a mut Screen, transforms: &'b mut Vec<M
             let mut triangles = Matrix::empty();
             solid::torus(&mut triangles, x, y, z, r0, r1);
             triangles = last(&transforms) * &triangles;
-            render::triangle_list(screen, &triangles);
+            render::triangle_list(screen, z_buffer, &triangles);
             Ok(())
         },
 
