@@ -34,7 +34,7 @@ pub fn save_png(image: &Screen, filename: &str) {
     let tmp_name = format!("{}.ppm", filename);
     save_ppm(image, &tmp_name);
     let start = Instant::now();
-    let status0 = Command::new("C:\\Program Files\\ImageMagick-7.0.5-Q16\\convert")
+    let status0 = Command::new("convert")
         .arg(&tmp_name)
         .arg(filename)
         .status().ok().unwrap();
@@ -46,11 +46,11 @@ pub fn save_png(image: &Screen, filename: &str) {
 }
 
 pub fn mkdirp(name: &str) {
-    //let status = Command::new("mkdir")
-    //    .arg("-p")
-    //    .arg(name)
-    //    .status().ok().unwrap();
-    //println!("Execution of `mkdir {}` exited with status: {}", name, status);
+    let status = Command::new("mkdir")
+        .arg("-p")
+        .arg(name)
+        .status().ok().unwrap();
+    println!("Execution of `mkdir {}` exited with status: {}", name, status);
 }
 
 pub fn clean_up_anim_ppms(frames: usize, basename: &str) {

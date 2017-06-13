@@ -1,13 +1,12 @@
-compile: clean main.exe
+compile: clean main
 
-main.exe:
+main:
 	rustc -C opt-level=3 src/main.rs
 
 d: clean
 	rustc src/main.rs
 
 run:
-	mkdir -p anim
 	./main
 	if [ -f anim/football.gif ]; then rm anim/football.gif; fi
 	convert anim/*.png anim/football.gif
