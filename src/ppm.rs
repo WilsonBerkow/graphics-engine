@@ -50,6 +50,7 @@ pub fn save_png(image: &Screen, filename: &str) {
 pub fn mkdirp(name: &str) {
     let status = Command::new("mkdir")
         .arg("-p")
+        .arg("--")
         .arg(name)
         .status().expect("failed to execute mkdir command");
     if !status.success() {
@@ -90,6 +91,7 @@ pub fn clean_up_anim_ppms(frames: usize, basename: &str) {
     for i in 0..frames {
         let filename = format!("{}.ppm", anim_frame_filename(frames, basename, i));
         let status = Command::new("rm")
+            .arg("--")
             .arg(&filename)
             .status().expect("failed to execute rm command");
         if !status.success() {
