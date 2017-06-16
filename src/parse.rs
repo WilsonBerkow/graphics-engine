@@ -1,3 +1,5 @@
+use render::Color;
+
 // TODO: Use Result instead of panics for error handling
 // The error handling here and in mod exec is a mess.
 
@@ -35,13 +37,22 @@ pub enum Command<'a> {
     Vary(Variation<'a>),
     Set(&'a str, f64),
     SetKnobs(f64),
+    Ambient(f64, f64, f64), // r, g, b
+    Light(f64, f64, f64, f64, f64, f64), // r, g, b, x, y, z
+    //Constants {
+    //    name: &'a str,
+    //    ka_r: f64,
+    //    kd_r: f64,
+    //    ks_r: f64,
+    //    ka_g: f64,
+    //    kd_g: f64,
+    //    ks_g: f64,
+    //    ka_b: f64,
+    //    kd_b: f64,
+    //    ks_b: f64,
+    //    // TODO: what's up with R, G, B "intensities" (optional args described in MDL.spec)
+    //},
 }
-
-//impl<'a> Ord for Command<'a> {
-//    fn cmp(&self, other: &Command<'a>) -> Ordering {
-//        self.knob.cmp(other.knob)
-//    }
-//}
 
 pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, &'static str> {
     let mut cmds = vec![];
@@ -153,6 +164,20 @@ pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, &'static str> {
             "set" => Command::Set(next_lexeme(&mut line)?, next_float(&mut line)),
 
             "setknobs" => Command::SetKnobs(next_float(&mut line)),
+
+            "ambient" => {
+                Command::Ambient(next_float(&mut line), next_float(&mut line), next_float(&mut line))
+            },
+
+            "light" => {
+                Command::Light(
+                    next_float(&mut line),
+                    next_float(&mut line),
+                    next_float(&mut line),
+                    next_float(&mut line),
+                    next_float(&mut line),
+                    next_float(&mut line))
+            },
 
             other => {
                 panic!("Error! Unknown command '{}'!", other);

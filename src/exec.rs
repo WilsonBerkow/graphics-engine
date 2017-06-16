@@ -5,7 +5,7 @@ use std::sync::mpsc::Sender;
 use parse::{ self, Command, Axis };
 use matrix::Matrix;
 use solid;
-use render::{ self, Screen, ZBuffer };
+use render::{ self, Color, Screen, ZBuffer };
 use ppm;
 use consts::*;
 
@@ -16,6 +16,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(
     let cmds = parse::parse(script)?;
 
     let mut z_buffer = ZBuffer::new();
+    let lighting_data = get_lighting_data(&cmds);
 
     match get_anim_data(&cmds) {
         Some(anim_data) => {
@@ -36,7 +37,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(
                 let mut transforms = vec![Matrix::identity()];
                 screen.clear_black();
                 for cmd in &cmds {
-                    run_cmd(&mut screen, &mut z_buffer, &mut transforms, Some(&mut knobvals), cmd)?;
+                    run_cmd(&mut screen, &mut z_buffer, &lighting_data, &mut transforms, Some(&mut knobvals), cmd)?;
                 }
                 if DEBUG {
                     let elapsed = start.elapsed();
@@ -47,11 +48,12 @@ pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(
             }
             Ok(Some((anim_data.frames, basename)))
         },
+
         None => {
             let mut screen = Screen::new();
             let mut transforms = vec![Matrix::identity()];
             for cmd in &cmds {
-                run_cmd(&mut screen, &mut z_buffer, &mut transforms, None, cmd)?;
+                run_cmd(&mut screen, &mut z_buffer, &lighting_data, &mut transforms, None, cmd)?;
             }
             Ok(None)
         }
@@ -84,6 +86,7 @@ fn get_anim_data<'a>(commands: &Vec<Command<'a>>) -> Option<AnimData<'a>> {
     let mut mframes = None;
     let mut mbasename = None;
     let mut varies = vec![];
+
     for cmd in commands {
         match cmd {
             &Command::Frames(f) => {
@@ -98,6 +101,7 @@ fn get_anim_data<'a>(commands: &Vec<Command<'a>>) -> Option<AnimData<'a>> {
             _ => {}
         }
     }
+
     if let Some(frames) = mframes {
         return Some(AnimData {
             frames: frames,
@@ -105,12 +109,49 @@ fn get_anim_data<'a>(commands: &Vec<Command<'a>>) -> Option<AnimData<'a>> {
             varies: varies
         });
     }
+
     if varies.len() > 0 {
         if DEBUG {
             println!("WARNING: found 'vary' but not 'frames'");
         }
     }
+
     return None;
+}
+
+pub struct LightingData {
+    pub ambient: Option<(f64, f64, f64)>, // r, g, b
+    pub lights: Vec<(f64, f64, f64, f64, f64, f64)> // r, g, b, x, y, z
+}
+
+fn get_lighting_data(cmds: &Vec<Command>) -> LightingData {
+    // Count `light` commands in cmds (so we can set capacity of the Vec):
+    let mut num_lights = 0;
+    for cmd in cmds {
+        if let &Command::Light(..) = cmd {
+            num_lights += 1;
+        }
+    }
+
+    // Determine values of `ambient` and `lights` fields
+    let mut lights = Vec::with_capacity(num_lights);
+    let mut ambient = None;
+    for cmd in cmds {
+        match cmd {
+            &Command::Ambient(r, g, b) => {
+                ambient = Some((r, g, b));
+            },
+            &Command::Light(r, g, b, x, y, z) => {
+                lights.push((r, g, b, x, y, z));
+            },
+            _ => {},
+        }
+    }
+
+    LightingData {
+        ambient: ambient,
+        lights: lights
+    }
 }
 
 fn knob_val<'a>(knobs: &HashMap<&'a str, f64>, knob: &'a str) -> f64 {
@@ -134,20 +175,6 @@ fn knobs_for_frame<'a>(frame: usize, varies: &Vec<parse::Variation<'a>>) -> Hash
     let mut knob_vals = vec![];
     for vary in varies {
         if vary.fst_frame <= frame && frame <= vary.last_frame {
-            // // FIXME: doing this with binary search is cute but may well
-            // // be slower than just using linear search and appending to the end
-            // // Insert the knob-value association unless there already is one for this knob
-            // match knob_vals.binary_search_by_key(vary.knob, |v| v.knob) {
-            //     Ok(pos) => {
-            //         // There is already a val for this knob
-            //         panic!("ERROR: Overlapping vary commands for knob '{}'", vary.knob);
-            //     },
-            //     Err(pos) => {
-            //         // The knob is not yet in the list
-            //         knob_vals.insert(pos, ...);
-            //         // Yes, this is O(n). See FIXME above.
-            //     }
-            // }
             let progress = (frame - vary.fst_frame) as f64 / (vary.last_frame - vary.fst_frame) as f64;
             let val = vary.min_val + (vary.max_val - vary.min_val) * progress;
             knob_vals.push((vary.knob, val))
@@ -166,7 +193,8 @@ fn transform_last(mat: &Matrix, transforms: &mut Vec<Matrix>) {
     transforms[len - 1] = &transforms[len - 1] * mat;
 }
 
-fn run_cmd<'a>(screen: &mut Screen, z_buffer: &mut ZBuffer, transforms: &mut Vec<Matrix>, knobs: Option<&mut HashMap<&'a str, f64>>, cmd: &Command<'a>) -> Result<(), String> {
+// TODO: make an Arguments struct to shrink this massive argumets list
+fn run_cmd<'a>(screen: &mut Screen, z_buffer: &mut ZBuffer, lighting: &LightingData, transforms: &mut Vec<Matrix>, knobs: Option<&mut HashMap<&'a str, f64>>, cmd: &Command<'a>) -> Result<(), String> {
     match cmd {
         &Command::Line { x0, y0, z0, x1, y1, z1 } => {
             let mut edges = Matrix::empty();
@@ -178,13 +206,13 @@ fn run_cmd<'a>(screen: &mut Screen, z_buffer: &mut ZBuffer, transforms: &mut Vec
             Ok(())
         },
 
-        // TODO: (Parse and) draw curves as well. It was not assigned, but is nice to have.
+        // TODO: (Parse and) draw curves as well. It was not required, but is nice to have.
 
         &Command::Box { x, y, z, w, h, d } => {
             let mut triangles = Matrix::empty();
             solid::rect_prism(&mut triangles, x, y, z, w, h, d);
             triangles = last(&transforms) * &triangles;
-            render::triangle_list(screen, z_buffer, &triangles);
+            render::triangle_list(screen, z_buffer, &triangles, &lighting);
             Ok(())
         },
 
@@ -192,7 +220,7 @@ fn run_cmd<'a>(screen: &mut Screen, z_buffer: &mut ZBuffer, transforms: &mut Vec
             let mut triangles = Matrix::empty();
             solid::sphere(&mut triangles, x, y, z, r);
             triangles = last(&transforms) * &triangles;
-            render::triangle_list(screen, z_buffer, &triangles);
+            render::triangle_list(screen, z_buffer, &triangles, &lighting);
             Ok(())
         },
 
@@ -200,7 +228,7 @@ fn run_cmd<'a>(screen: &mut Screen, z_buffer: &mut ZBuffer, transforms: &mut Vec
             let mut triangles = Matrix::empty();
             solid::torus(&mut triangles, x, y, z, r0, r1);
             triangles = last(&transforms) * &triangles;
-            render::triangle_list(screen, z_buffer, &triangles);
+            render::triangle_list(screen, z_buffer, &triangles, &lighting);
             Ok(())
         },
 
@@ -276,6 +304,12 @@ fn run_cmd<'a>(screen: &mut Screen, z_buffer: &mut ZBuffer, transforms: &mut Vec
             Ok(())
         },
 
+        // Lighting commands already processed by get_lighting_data
+        &Command::Ambient(..) | &Command::Light(..) => {
+            Ok(())
+        },
+
+        // Knob-related commands already processed by get_anim_data
         &Command::Frames(..) | &Command::Basename(..) | &Command::Vary { .. } => {
             Ok(())
         }

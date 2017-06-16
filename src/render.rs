@@ -1,6 +1,8 @@
 use std::mem::swap;
-use matrix::Matrix;
 use std::fmt;
+
+use exec::LightingData;
+use matrix::Matrix;
 use consts::*;
 
 // row-major order
@@ -68,7 +70,7 @@ impl ZBuffer {
         }
     }
 
-    pub fn plot(&mut self, x: usize, y: usize, z: f64) -> bool {
+    pub fn maybe_plot(&mut self, x: usize, y: usize, z: f64) -> bool {
         let row = HEIGHT - y - 1;
         let i = row * WIDTH + x;
         if self.0[i] < z {
@@ -80,7 +82,7 @@ impl ZBuffer {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -149,6 +151,55 @@ impl Point {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+struct Vector {
+    x: f64,
+    y: f64,
+    z: f64
+}
+
+impl Vector {
+    fn new(x: f64, y: f64, z: f64) -> Vector {
+        Vector { x: x, y: y, z: z }
+    }
+
+    fn from_homo(a: [f64; 4]) -> Vector {
+        Vector { x: a[0], y: a[1], z: a[2] }
+    }
+
+    fn add(self, v: Vector) -> Vector {
+        Vector { x: self.x + v.x, y: self.y + v.y, z: self.z + v.z }
+    }
+
+    fn sub(self, v: Vector) -> Vector {
+        self.add(v.scale(-1.0))
+    }
+
+    fn scale(self, f: f64) -> Vector {
+        Vector { x: f * self.x, y: f * self.y, z: f * self.z }
+    }
+
+    fn cross(self, v: Vector) -> Vector {
+        Vector {
+            x: self.y * v.z - self.z * v.y,
+            y: self.z * v.x - self.x * v.z,
+            z: self.x * v.y - self.y * v.x
+        }
+    }
+
+    fn dot(self, v: Vector) -> f64 {
+        self.x * v.x + self.y * v.y + self.z * v.z
+    }
+
+    fn norm(self) -> f64 {
+        f64::sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
+    }
+
+    fn normalize(self) -> Vector {
+        self.scale(1.0 / self.norm())
+    }
+}
+
 /// Draw edges in an edge list matrix. Each successive pair of
 /// columns are considered the endpoints of a distinct edge
 /// (i.e. [A-start | A-end | B-start | B-end | etc...]).
@@ -184,18 +235,65 @@ pub fn edge_list(image: &mut Screen, edges: &Matrix) {
     }
 }*/
 
-pub fn triangle_list(image: &mut Screen, z_buffer: &mut ZBuffer, triangles: &Matrix) {
+fn fclamp_u8(f: f64) -> u8 {
+    if f > 255.0 {
+        255
+    } else if f < 0.0 {
+        0
+    } else {
+        f as u8
+    }
+}
+
+fn fmax(f: f64, g: f64) -> f64 {
+    if f > g {
+        f
+    } else {
+        g
+    }
+}
+
+pub fn triangle_list(image: &mut Screen, z_buffer: &mut ZBuffer, triangles: &Matrix, lighting: &LightingData) {
+    let ambient_clr = match lighting.ambient {
+        Some(c) => (c.0 * 1.0, c.1 * 1.0, c.2 * 1.0),
+        None => (0.0, 0.0, 0.0)
+    };
+    // Iterate over each triplet of 3 columns in `triangles`
     let mut i = 0;
     while i + 2 < triangles.width() {
+        // Get the three columns representing the vertices
         let pcol = triangles.col(i);
-        let p = Point::xy(pcol[0] as i64, pcol[1] as i64);
         let qcol = triangles.col(i + 1);
-        let q = Point::xy(qcol[0] as i64, qcol[1] as i64);
         let rcol = triangles.col(i + 2);
-        let r = Point::xy(rcol[0] as i64, rcol[1] as i64);
-        if r.vector_diff(p).clockwise_of(q.vector_diff(p)) {
-            scanline(image, z_buffer, pcol, qcol, rcol, Color::arbitrary(i));
+        // Get their vector normal
+        let p = Vector::from_homo(pcol);
+        let q = Vector::from_homo(qcol);
+        let r = Vector::from_homo(rcol);
+        let normal = q.sub(p).cross(r.sub(p)).normalize();
+
+        // Get diffuse lighting values for this triangle
+        let mut diffuse_clr = (0.0, 0.0, 0.0);
+        for &(r, g, b, x, y, z) in &lighting.lights {
+            // Intensity of light (r, g, or b) is scaled by strength (cosine of
+            // the angle between the light and the normal to the surface)
+            let strength = Vector::new(-x, -y, -z).normalize().dot(normal);
+            if !strength.is_nan() && strength > 0.0 {
+                // check for NaN so x = y = z = 0 doesn't screw up everything
+                diffuse_clr.0 += strength * r;
+                diffuse_clr.1 += strength * g;
+                diffuse_clr.2 += strength * b;
+            }
         }
+
+        // If it is facing us, render it:
+        if normal.z > 0.0 {
+            scanline(image, z_buffer, pcol, qcol, rcol, Color {
+                r: fclamp_u8(ambient_clr.0 + diffuse_clr.0),
+                g: fclamp_u8(ambient_clr.1 + diffuse_clr.1),
+                b: fclamp_u8(ambient_clr.2 + diffuse_clr.2),
+            });
+        }
+        // Advance to the next triangle
         i += 3;
     }
 }
@@ -209,7 +307,7 @@ pub fn scanline(img: &mut Screen, z_buffer: &mut ZBuffer, mut top: [f64; 4], mut
 
     // x0 is the x pos of the edge connecting `low` to `top`
     let mut x0 = low[0];
-    let dx0 = if top[0] == low[0] {
+    let dx0 = if top[1] == low[1] {
         0.0
     } else {
         (top[0] - low[0]) / (top[1] - low[1])
@@ -217,7 +315,7 @@ pub fn scanline(img: &mut Screen, z_buffer: &mut ZBuffer, mut top: [f64; 4], mut
 
     // x1 is the x pos of the edge connecting `low` to `mid`
     let mut x1 = low[0];
-    let dx1 = if mid[0] == low[0] {
+    let dx1 = if mid[1] == low[1] {
         0.0
     } else {
         (mid[0] - low[0]) / (mid[1] - low[1])
@@ -238,10 +336,8 @@ pub fn scanline(img: &mut Screen, z_buffer: &mut ZBuffer, mut top: [f64; 4], mut
         (mid[2] - low[2]) / (mid[1] - low[1])
     };
 
-    let mut dz;
     for y in low[1] as i64 .. mid[1] as i64 {
-        dz = if x1 == x0 { 0.0 } else { (z1 - z0) / (x1 - x0) };
-        flat_line(img, z_buffer, x0 as i64, x1 as i64, y, z0, dz, clr);
+        flat_line(img, z_buffer, x0, x1, y, z0, z1, clr);
         x0 += dx0;
         x1 += dx1;
         z0 += dz0;
@@ -249,7 +345,7 @@ pub fn scanline(img: &mut Screen, z_buffer: &mut ZBuffer, mut top: [f64; 4], mut
     }
 
     let mut x2 = mid[0];
-    let dx2 = if top[0] == mid[0] {
+    let dx2 = if top[1] == mid[1] {
         0.0
     } else {
         (top[0] - mid[0]) / (top[1] - mid[1])
@@ -261,10 +357,8 @@ pub fn scanline(img: &mut Screen, z_buffer: &mut ZBuffer, mut top: [f64; 4], mut
     } else {
         (top[2] - mid[2]) / (top[1] - mid[1])
     };
-    let mut dz;
     for y in mid[1] as i64 .. top[1] as i64 {
-        dz = if x0 == x2 { 0.0 } else { (z2 - z0) / (x2 - x0) };
-        flat_line(img, z_buffer, x0 as i64, x2 as i64, y, z0, dz, clr);
+        flat_line(img, z_buffer, x0, x2, y, z0, z2, clr);
         x0 += dx0;
         x2 += dx2;
         z0 += dz0;
@@ -283,36 +377,30 @@ fn fclamp(min: f64, x: f64, max: f64) -> f64 {
     }
 }
 
-fn flat_line(img: &mut Screen, z_buffer: &mut ZBuffer, mut x0: i64, mut x1: i64, y: i64, given_z0: f64, given_dz: f64, clr: Color) {
+fn flat_line(img: &mut Screen, z_buffer: &mut ZBuffer, mut fx0: f64, mut fx1: f64, y: i64, mut fz0: f64, mut fz1: f64, clr: Color) {
     use std::cmp::{ min, max };
     // Return if y is offscreen
     if y < 0 || y >= HEIGHT as i64 {
         return;
     }
-    // Order x0 and x1, and z0 and dz (z0 is the z coord at x0)
-    let z0;
-    let dz;
-    if x1 < x0 {
-        swap(&mut x0, &mut x1);
-        z0 = given_z0 + given_dz * (x1 - x0) as f64;
-        dz = -given_dz;
-    } else {
-        z0 = given_z0;
-        dz = given_dz;
+    // Order fx0 and fx1, and fz0 and fz1 (fz0 is the z coord at fx0, fz1 is z at fx1)
+    if fx1 < fx0 {
+        swap(&mut fx0, &mut fx1);
+        swap(&mut fz0, &mut fz1);
     }
-    // Increment x1, as the inputs are inclusive and we'll want the upper
-    // bound be be exclusive for everything below
-    x1 += 1;
     // Redefine variables as usizes and clamp x within the screen
-    let x0 = min(max(x0, 0), WIDTH as i64 - 1) as usize;
-    let x1 = min(max(x1, 0), WIDTH as i64 - 1) as usize;
-    let y = y as usize;
-    let mut z = z0;
-    for x in x0..x1 {
-        if z_buffer.plot(x, y, z) {
+    let x0 = fclamp(0.0, fx0, (WIDTH - 1) as f64) as usize;
+    let x1 = fclamp(0.0, fx1, (WIDTH - 1) as f64) as usize;
+    let y = y as usize; // overflow is not an issue as we check bounds of y above
+
+    let mut z = fz0;
+    // Let dz be the change in z per unit x (is only relevant if x1 != x0)
+    let dz = if x1 == x0 { 0.0 } else { (fz1 - fz0) / (fx1 - fx0) };
+
+    for x in x0 .. x1 + 1 {
+        // If the point is visible (determined by z_buffer), plot to `img`
+        if z_buffer.maybe_plot(x, y, z) {
             img.setxy(x, y, clr);
-            // debug_clr to show Z, for debugging. TODO: remove this comment once it certainly is correct
-            // let debug_clr = Color::grayscale(fclamp(0.0, (z + 60.0) / 200.0 * 255.0, 255.0) as u8);
         }
         z += dz;
     }

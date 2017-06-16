@@ -1,19 +1,17 @@
 frames 50
+ambient 40 40 40
+light 0 255 0 1 1 -1
 basename football
 vary biggy 0 49 1.0 0.06
 vary righty 0 49 0.0 1.0
 vary spinny 0 49 0.0 1.0
 
 push
-//move 200 200 0
-//rotate y 360 spinny
-//box -50 -50 -50 100 100 100
-move 350 0 0 righty
-move 200 0 0
-rotate z -120 righty
-move -200 200 0
-rotate z 20
-rotate x -180 spinny
-scale 1 1 1 biggy
-scale 2 1 1
-sphere 0 0 0 25
+//box 200 200 100 10 5 5
+move 200 200 0
+rotate x 360 spinny
+rotate y 360 spinny
+//box -50 -25 -25 100 50 50
+box -50 50 -50 100 100 100
+//sphere 0 0 0 50
+box -100 -5 -5 200 40 10
