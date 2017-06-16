@@ -37,8 +37,8 @@ pub enum Command<'a> {
     Vary(Variation<'a>),
     Set(&'a str, f64),
     SetKnobs(f64),
-    Ambient(f64, f64, f64),
-    Light(f64, f64, f64, f64, f64, f64), // color, x, y, z
+    Ambient(f64, f64, f64), // r, g, b
+    Light(f64, f64, f64, f64, f64, f64), // r, g, b, x, y, z
     //Constants {
     //    name: &'a str,
     //    ka_r: f64,
