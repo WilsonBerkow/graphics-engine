@@ -6,6 +6,9 @@ vary biggy 0 49 1.0 0.06
 vary righty 0 49 0.0 1.0
 vary spinny 0 49 0.0 1.0
 
+constants bluey 0 0 0 0.1 0.1 0.4 0.8 1.0 1.0
+constants greeny 0 0 0 0.1 1.0 1.0 0.1 0.4 0.8
+
 push
 //box 200 200 100 10 5 5
 move 200 200 0

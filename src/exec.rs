@@ -2,7 +2,7 @@ use std::time::Instant;
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
-use parse::{ self, Command, Axis };
+use parse::{ self, Command, Axis, LightingConstants, Variation };
 use matrix::Matrix;
 use solid;
 use render::{ self, Color, Screen, ZBuffer };
@@ -79,7 +79,7 @@ fn decimal_digits(mut n: usize) -> usize {
 struct AnimData<'a> {
     frames: usize,
     basename: Option<&'a str>,
-    varies: Vec<parse::Variation<'a>>
+    varies: Vec<Variation<'a>>
 }
 
 fn get_anim_data<'a>(commands: &Vec<Command<'a>>) -> Option<AnimData<'a>> {
@@ -119,22 +119,28 @@ fn get_anim_data<'a>(commands: &Vec<Command<'a>>) -> Option<AnimData<'a>> {
     return None;
 }
 
-pub struct LightingData {
+pub struct LightingData<'a> {
     pub ambient: Option<(f64, f64, f64)>, // r, g, b
-    pub lights: Vec<(f64, f64, f64, f64, f64, f64)> // r, g, b, x, y, z
+    pub lights: Vec<(f64, f64, f64, f64, f64, f64)>, // r, g, b, x, y, z
+    pub constants: HashMap<&'a str, LightingConstants>,
 }
 
-fn get_lighting_data(cmds: &Vec<Command>) -> LightingData {
-    // Count `light` commands in cmds (so we can set capacity of the Vec):
+fn get_lighting_data<'a>(cmds: &Vec<Command<'a>>) -> LightingData<'a> {
+    // Count `light` and `constants` commands in cmds (so we can set capacities later):
     let mut num_lights = 0;
+    let mut num_constants = 0;
     for cmd in cmds {
         if let &Command::Light(..) = cmd {
             num_lights += 1;
+        }
+        if let &Command::Constants(..) = cmd {
+            num_constants += 1;
         }
     }
 
     // Determine values of `ambient` and `lights` fields
     let mut lights = Vec::with_capacity(num_lights);
+    let mut constants = HashMap::with_capacity(num_constants);
     let mut ambient = None;
     for cmd in cmds {
         match cmd {
@@ -144,13 +150,19 @@ fn get_lighting_data(cmds: &Vec<Command>) -> LightingData {
             &Command::Light(r, g, b, x, y, z) => {
                 lights.push((r, g, b, x, y, z));
             },
+            &Command::Constants(name, ref consts) => {
+                constants.insert(name, consts.clone());
+            },
             _ => {},
         }
     }
 
+    println!("Constants: {:?}", &constants);
+
     LightingData {
         ambient: ambient,
-        lights: lights
+        lights: lights,
+        constants: constants
     }
 }
 
@@ -171,7 +183,7 @@ fn optknob_val<'a>(optknobs: Option<&HashMap<&'a str, f64>>, optknob: Option<&'a
     }
 }
 
-fn knobs_for_frame<'a>(frame: usize, varies: &Vec<parse::Variation<'a>>) -> HashMap<&'a str, f64> {
+fn knobs_for_frame<'a>(frame: usize, varies: &Vec<Variation<'a>>) -> HashMap<&'a str, f64> {
     let mut knob_vals = vec![];
     for vary in varies {
         if vary.fst_frame <= frame && frame <= vary.last_frame {
@@ -305,7 +317,7 @@ fn run_cmd<'a>(screen: &mut Screen, z_buffer: &mut ZBuffer, lighting: &LightingD
         },
 
         // Lighting commands already processed by get_lighting_data
-        &Command::Ambient(..) | &Command::Light(..) => {
+        &Command::Ambient(..) | &Command::Light(..) | &Command::Constants(..) => {
             Ok(())
         },
 

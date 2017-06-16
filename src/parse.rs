@@ -19,6 +19,22 @@ pub struct Variation<'a> {
     pub max_val: f64,
 }
 
+// TODO: find better place for LightingConstants struct
+
+#[derive(Clone, Debug)]
+pub struct LightingConstants {
+    ka_r: f64,
+    kd_r: f64,
+    ks_r: f64,
+    ka_g: f64,
+    kd_g: f64,
+    ks_g: f64,
+    ka_b: f64,
+    kd_b: f64,
+    ks_b: f64,
+    // TODO: what's up with R, G, B "intensities" (optional args described in MDL.spec)
+}
+
 #[derive(Debug)]
 pub enum Command<'a> {
     Push,
@@ -39,19 +55,7 @@ pub enum Command<'a> {
     SetKnobs(f64),
     Ambient(f64, f64, f64), // r, g, b
     Light(f64, f64, f64, f64, f64, f64), // r, g, b, x, y, z
-    //Constants {
-    //    name: &'a str,
-    //    ka_r: f64,
-    //    kd_r: f64,
-    //    ks_r: f64,
-    //    ka_g: f64,
-    //    kd_g: f64,
-    //    ks_g: f64,
-    //    ka_b: f64,
-    //    kd_b: f64,
-    //    ks_b: f64,
-    //    // TODO: what's up with R, G, B "intensities" (optional args described in MDL.spec)
-    //},
+    Constants(&'a str, LightingConstants),
 }
 
 pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, &'static str> {
@@ -179,6 +183,23 @@ pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, &'static str> {
                     next_float(&mut line))
             },
 
+            "constants" => {
+                Command::Constants(
+                    next_lexeme(&mut line)?,
+                    LightingConstants {
+                        ka_r: next_float(&mut line),
+                        kd_r: next_float(&mut line),
+                        ks_r: next_float(&mut line),
+                        ka_g: next_float(&mut line),
+                        kd_g: next_float(&mut line),
+                        ks_g: next_float(&mut line),
+                        ka_b: next_float(&mut line),
+                        kd_b: next_float(&mut line),
+                        ks_b: next_float(&mut line),
+                    }
+                )
+            },
+
             other => {
                 panic!("Error! Unknown command '{}'!", other);
             }
@@ -193,7 +214,7 @@ fn skip_linespace<'a, 'b>(src: &'b mut &'a str) {
     for (i, c) in src.char_indices() {
         // Plow through src until we hit a newline or non-linespace char
         if c == '\n' || (c != ' ' && c != '\t') {
-            // Assign src to slice after the whitespace
+            // Assign src to the slice after the whitespace
             *src = src.split_at(i).1;
             return;
         }
@@ -221,6 +242,7 @@ fn next_lexeme<'a, 'b>(src: &'b mut &'a str) -> Result<&'a str, &'static str> {
     }
 }
 
+// TODO: return a Result
 fn next_usize(srcref: &mut &str) -> usize {
     if let Ok(lexeme) = next_lexeme(srcref) {
         match lexeme.parse::<usize>() {
@@ -232,6 +254,7 @@ fn next_usize(srcref: &mut &str) -> usize {
     }
 }
 
+// TODO: return a Result
 fn next_float(srcref: &mut &str) -> f64 {
     if let Ok(lexeme) = next_lexeme(srcref) {
         match lexeme.parse::<f64>() {
