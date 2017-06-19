@@ -226,7 +226,7 @@ fn transform_last(mat: &Matrix, transforms: &mut Vec<Matrix>) {
     transforms[len - 1] = &transforms[len - 1] * mat;
 }
 
-// TODO: make an Arguments struct to shrink this massive argumets list
+// TODO: make an Arguments struct to shrink this massive arguments list
 fn run_cmd<'a>(screen: &mut Screen, z_buffer: &mut ZBuffer, lighting: &LightingData, transforms: &mut Vec<Matrix>, knobs: Option<&mut HashMap<&'a str, f64>>, cmd: &Command<'a>) -> Result<(), String> {
     match cmd {
         &Command::Line { x0, y0, z0, x1, y1, z1 } => {
