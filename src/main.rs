@@ -32,6 +32,7 @@ use std::time::Instant;
 use consts::*;
 
 fn main() {
+    // TODO: flatten structure of `match`es here
     match File::open("script") {
         Err(e) => {
             panic!("Could not open file 'script'. Error: {}", e);
@@ -53,10 +54,19 @@ fn main() {
                     // Generate frames:
                     let start = Instant::now();
 
+                    // Parse script and exit on syntax error
+                    let cmds = match parse::parse(&s) {
+                        Ok(cmds) => cmds,
+                        Err(parse_error) => {
+                            println!("\n{}", parse_error);
+                            return;
+                        }
+                    };
+
                     // frame_info, if Some, is a pair of the number of frames and the basename, and
                     // is used to delete intermediate files (e.g. .ppm files) at the end.
                     let frame_info: Option<(usize, &str)>;
-                    match exec::run_script(&s, tx) {
+                    match exec::run_script(&cmds, tx) {
                         Err(msg) => {
                             println!("Error!\n{}", msg);
                             frame_info = None;

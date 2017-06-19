@@ -108,6 +108,7 @@ impl Color {
         Color::rgb(255, 255, 255)
     }
 
+    #[allow(dead_code)]
     pub fn arbitrary(i: usize) -> Color {
         // Rust's `rand` is an external crate. As my initial instructions for
         // installation of rust on Mr. DW's machine excluded Cargo, I'm not
@@ -135,19 +136,6 @@ pub struct Point {
 impl Point {
     pub fn xy(x: i64, y: i64) -> Point {
         Point { x: x, y: y }
-    }
-
-    #[allow(dead_code)]
-    pub fn vector_sum(&self, p: Point) -> Point {
-        Point { x: self.x + p.x, y: self.y + p.y }
-    }
-
-    pub fn vector_diff(&self, p: Point) -> Point {
-        Point { x: self.x - p.x, y: self.y - p.y }
-    }
-
-    pub fn clockwise_of(&self, p: Point) -> bool {
-        p.x * self.y - p.y * self.x > 0
     }
 }
 
@@ -242,14 +230,6 @@ fn fclamp_u8(f: f64) -> u8 {
         0
     } else {
         f as u8
-    }
-}
-
-fn fmax(f: f64, g: f64) -> f64 {
-    if f > g {
-        f
-    } else {
-        g
     }
 }
 
@@ -378,7 +358,6 @@ fn fclamp(min: f64, x: f64, max: f64) -> f64 {
 }
 
 fn flat_line(img: &mut Screen, z_buffer: &mut ZBuffer, mut fx0: f64, mut fx1: f64, y: i64, mut fz0: f64, mut fz1: f64, clr: Color) {
-    use std::cmp::{ min, max };
     // Return if y is offscreen
     if y < 0 || y >= HEIGHT as i64 {
         return;

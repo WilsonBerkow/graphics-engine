@@ -2,23 +2,21 @@ use std::time::Instant;
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
-use parse::{ self, Command, Axis, LightingConstants, Variation };
+use parse::{ Command, Axis, LightingConstants, Variation };
 use matrix::Matrix;
 use solid;
-use render::{ self, Color, Screen, ZBuffer };
+use render::{ self, Screen, ZBuffer };
 use ppm;
 use consts::*;
 
 // TODO: clean up w/ regard to distinction between single-image and animation rendering
 // Ok-component of return value is None if only a static frame was generated, and Some((frames,
 // basename)) if an animation was made.
-pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(usize, &str)>, String> {
-    let cmds = parse::parse(script)?;
-
+pub fn run_script<'a>(cmds: &Vec<Command<'a>>, tx: Sender<(String, Screen)>) -> Result<Option<(usize, &'a str)>, String> {
     let mut z_buffer = ZBuffer::new();
-    let lighting_data = get_lighting_data(&cmds);
+    let lighting_data = get_lighting_data(cmds);
 
-    match get_anim_data(&cmds) {
+    match get_anim_data(cmds) {
         Some(anim_data) => {
             if DEBUG {
                 println!("anim_data: {:?}", &anim_data);
@@ -36,7 +34,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(
                 let mut knobvals = knobs_for_frame(i, &anim_data.varies);
                 let mut transforms = vec![Matrix::identity()];
                 screen.clear_black();
-                for cmd in &cmds {
+                for cmd in cmds {
                     run_cmd(&mut screen, &mut z_buffer, &lighting_data, &mut transforms, Some(&mut knobvals), cmd)?;
                 }
                 if DEBUG {
@@ -52,7 +50,7 @@ pub fn run_script(script: &str, tx: Sender<(String, Screen)>) -> Result<Option<(
         None => {
             let mut screen = Screen::new();
             let mut transforms = vec![Matrix::identity()];
-            for cmd in &cmds {
+            for cmd in cmds {
                 run_cmd(&mut screen, &mut z_buffer, &lighting_data, &mut transforms, None, cmd)?;
             }
             Ok(None)

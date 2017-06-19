@@ -1,7 +1,4 @@
-use render::Color;
-
-// TODO: Use Result instead of panics for error handling
-// The error handling here and in mod exec is a mess.
+use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Axis {
@@ -58,8 +55,58 @@ pub enum Command<'a> {
     Constants(&'a str, LightingConstants),
 }
 
-pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, &'static str> {
-    let mut cmds = vec![];
+#[derive(Debug, Clone)]
+pub enum ParseError<'a> {
+    // If the token field (the first field) is None, EOL (or EOF) was found.
+    // The second field (usize) is line number.
+    ExpectedNumber(Option<&'a str>, usize),
+    ExpectedUnsigned(Option<&'a str>, usize),
+    ExpectedName(Option<&'a str>, usize),
+    ExpectedAxis(Option<&'a str>, usize),
+    UnexpectedTrailing(&'a str, usize),
+    UnknownCommand(&'a str, usize),
+}
+
+// Util function for Display impl for ParseError. Displays bad tokens or unexpected end of line
+fn err_display_EOL_or_lexeme(optlex: Option<&str>) -> String {
+    if let Some(lexeme) = optlex {
+        format!("'{}'", lexeme)
+    } else {
+        format!("end of line")
+    }
+}
+
+impl<'a> fmt::Display for ParseError<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Syntax Error on line ")?;
+        // Then print the line number and the error info
+        match *self {
+            ParseError::ExpectedNumber(optlex, linum) => {
+                write!(f, "{}. Expected number, found {}", linum, err_display_EOL_or_lexeme(optlex))
+            },
+            ParseError::ExpectedUnsigned(optlex, linum) => {
+                write!(f, "{}. Expected unsigned integer, found {}", linum, err_display_EOL_or_lexeme(optlex))
+            },
+            ParseError::ExpectedName(optlex, linum) => {
+                write!(f, "{}. Expected name, found {}", linum, err_display_EOL_or_lexeme(optlex))
+            },
+            ParseError::ExpectedAxis(optlex, linum) => {
+                write!(f, "{}. Expected axis (x or y or z), found {}", linum, err_display_EOL_or_lexeme(optlex))
+            },
+            ParseError::UnexpectedTrailing(trailing, linum) => {
+                write!(f, "{}. Unexpected characters after command: '{}'", linum, trailing)
+            },
+            ParseError::UnknownCommand(name, linum) => {
+                write!(f, "{}. Unknown command '{}'", linum, name)
+            }
+        }
+    }
+}
+
+pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, ParseError<'a>> {
+    let mut cmds = Vec::new();
+
+    let mut linum: usize = 0;
 
     for mut line in script.lines() {
         skip_linespace(&mut line);
@@ -73,13 +120,13 @@ pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, &'static str> {
             continue;
         }
 
-        let command = match next_lexeme(&mut line)? {
+        let command = match next_name(&mut line, linum)? {
             "push" => Command::Push,
 
             "pop" => Command::Pop,
 
             "save" => {
-                let filename = next_lexeme(&mut line)?;
+                let filename = next_name(&mut line, linum)?;
                 Command::Save(filename)
             },
 
@@ -87,133 +134,140 @@ pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, &'static str> {
 
             "move" => {
                 Command::Move {
-                    x: next_float(&mut line),
-                    y: next_float(&mut line),
-                    z: next_float(&mut line),
-                    knob: next_lexeme(&mut line).ok()
+                    x: next_float(&mut line, linum)?,
+                    y: next_float(&mut line, linum)?,
+                    z: next_float(&mut line, linum)?,
+                    knob: next_name(&mut line, linum).ok()
                 }
             },
 
             "rotate" => {
                 Command::Rotate(
-                    next_axis(&mut line),
-                    next_float(&mut line),
-                    next_lexeme(&mut line).ok())
+                    next_axis(&mut line, linum)?,
+                    next_float(&mut line, linum)?,
+                    next_name(&mut line, linum).ok())
             },
 
             "scale" => {
                 Command::Scale {
-                    x: next_float(&mut line),
-                    y: next_float(&mut line),
-                    z: next_float(&mut line),
-                    knob: next_lexeme(&mut line).ok()
+                    x: next_float(&mut line, linum)?,
+                    y: next_float(&mut line, linum)?,
+                    z: next_float(&mut line, linum)?,
+                    knob: next_name(&mut line, linum).ok()
                 }
             },
 
             "box" => {
                 Command::Box {
-                    x: next_float(&mut line),
-                    y: next_float(&mut line),
-                    z: next_float(&mut line),
-                    w: next_float(&mut line),
-                    h: next_float(&mut line),
-                    d: next_float(&mut line)
+                    x: next_float(&mut line, linum)?,
+                    y: next_float(&mut line, linum)?,
+                    z: next_float(&mut line, linum)?,
+                    w: next_float(&mut line, linum)?,
+                    h: next_float(&mut line, linum)?,
+                    d: next_float(&mut line, linum)?
                 }
             },
 
             "sphere" => {
                 Command::Sphere {
-                    x: next_float(&mut line),
-                    y: next_float(&mut line),
-                    z: next_float(&mut line),
-                    r: next_float(&mut line),
+                    x: next_float(&mut line, linum)?,
+                    y: next_float(&mut line, linum)?,
+                    z: next_float(&mut line, linum)?,
+                    r: next_float(&mut line, linum)?,
                 }
             },
 
             "torus" => {
                 Command::Torus {
-                    x: next_float(&mut line),
-                    y: next_float(&mut line),
-                    z: next_float(&mut line),
-                    r0: next_float(&mut line),
-                    r1: next_float(&mut line),
+                    x: next_float(&mut line, linum)?,
+                    y: next_float(&mut line, linum)?,
+                    z: next_float(&mut line, linum)?,
+                    r0: next_float(&mut line, linum)?,
+                    r1: next_float(&mut line, linum)?,
                 }
             },
 
             "line" => {
                 Command::Line {
-                    x0: next_float(&mut line),
-                    y0: next_float(&mut line),
-                    z0: next_float(&mut line),
-                    x1: next_float(&mut line),
-                    y1: next_float(&mut line),
-                    z1: next_float(&mut line)
+                    x0: next_float(&mut line, linum)?,
+                    y0: next_float(&mut line, linum)?,
+                    z0: next_float(&mut line, linum)?,
+                    x1: next_float(&mut line, linum)?,
+                    y1: next_float(&mut line, linum)?,
+                    z1: next_float(&mut line, linum)?
                 }
             },
 
-            "frames" => Command::Frames(next_usize(&mut line)),
+            "frames" => Command::Frames(next_usize(&mut line, linum)?),
 
-            "basename" => Command::Basename(next_lexeme(&mut line)?),
+            "basename" => Command::Basename(next_name(&mut line, linum)?),
 
             "vary" => {
                 Command::Vary(Variation {
-                    knob: next_lexeme(&mut line)?,
-                    fst_frame: next_usize(&mut line),
-                    last_frame: next_usize(&mut line),
-                    min_val: next_float(&mut line),
-                    max_val: next_float(&mut line)
+                    knob: next_name(&mut line, linum)?,
+                    fst_frame: next_usize(&mut line, linum)?,
+                    last_frame: next_usize(&mut line, linum)?,
+                    min_val: next_float(&mut line, linum)?,
+                    max_val: next_float(&mut line, linum)?
                 })
             },
 
-            "set" => Command::Set(next_lexeme(&mut line)?, next_float(&mut line)),
+            "set" => Command::Set(next_name(&mut line, linum)?, next_float(&mut line, linum)?),
 
-            "setknobs" => Command::SetKnobs(next_float(&mut line)),
+            "setknobs" => Command::SetKnobs(next_float(&mut line, linum)?),
 
             "ambient" => {
-                Command::Ambient(next_float(&mut line), next_float(&mut line), next_float(&mut line))
+                Command::Ambient(next_float(&mut line, linum)?, next_float(&mut line, linum)?, next_float(&mut line, linum)?)
             },
 
             "light" => {
                 Command::Light(
-                    next_float(&mut line),
-                    next_float(&mut line),
-                    next_float(&mut line),
-                    next_float(&mut line),
-                    next_float(&mut line),
-                    next_float(&mut line))
+                    next_float(&mut line, linum)?,
+                    next_float(&mut line, linum)?,
+                    next_float(&mut line, linum)?,
+                    next_float(&mut line, linum)?,
+                    next_float(&mut line, linum)?,
+                    next_float(&mut line, linum)?)
             },
 
             "constants" => {
                 Command::Constants(
-                    next_lexeme(&mut line)?,
+                    next_name(&mut line, linum)?,
                     LightingConstants {
-                        ka_r: next_float(&mut line),
-                        kd_r: next_float(&mut line),
-                        ks_r: next_float(&mut line),
-                        ka_g: next_float(&mut line),
-                        kd_g: next_float(&mut line),
-                        ks_g: next_float(&mut line),
-                        ka_b: next_float(&mut line),
-                        kd_b: next_float(&mut line),
-                        ks_b: next_float(&mut line),
+                        ka_r: next_float(&mut line,  linum)?,
+                        kd_r: next_float(&mut line,  linum)?,
+                        ks_r: next_float(&mut line,  linum)?,
+                        ka_g: next_float(&mut line,  linum)?,
+                        kd_g: next_float(&mut line,  linum)?,
+                        ks_g: next_float(&mut line,  linum)?,
+                        ka_b: next_float(&mut line,  linum)?,
+                        kd_b: next_float(&mut line,  linum)?,
+                        ks_b: next_float(&mut line,  linum)?,
                     }
                 )
             },
 
             other => {
-                panic!("Error! Unknown command '{}'!", other);
+                return Err(ParseError::UnknownCommand(other, linum));
             }
         };
+
+        // Check for trailing input
+        skip_linespace(&mut line);
+        if line != "" {
+            return Err(ParseError::UnexpectedTrailing(line, linum));
+        }
+
         cmds.push(command);
-        // TODO: error on extra input
+        linum += 1;
     }
     Ok(cmds)
 }
 
-fn skip_linespace<'a, 'b>(src: &'b mut &'a str) {
+fn skip_linespace<'a>(src: &mut &'a str) {
     for (i, c) in src.char_indices() {
-        // Plow through src until we hit a newline or non-linespace char
-        if c == '\n' || (c != ' ' && c != '\t') {
+        // Plow through src until we hit a newline or non-whitespace char
+        if c == '\n' || !c.is_whitespace() {
             // Assign src to the slice after the whitespace
             *src = src.split_at(i).1;
             return;
@@ -222,57 +276,76 @@ fn skip_linespace<'a, 'b>(src: &'b mut &'a str) {
     *src = ""; // no input after whitespace
 }
 
-fn next_lexeme<'a, 'b>(src: &'b mut &'a str) -> Result<&'a str, &'static str> {
+/// Return value:
+/// - Some(*first lexeme in `src`*)
+/// - None if there is no lexeme in `src` (i.e. there is only whitespace)
+/// Lexemes are sequences on non-whitespace chars on the same line
+fn next_lexeme<'a>(src: &mut &'a str) -> Option<&'a str> {
     skip_linespace(src);
     if src.len() == 0 {
-        // TODO: take metadata as a parameter to have better error messages
-        Err("Unexpected end of line in script!")
+        None
     } else {
         for (i, c) in src.char_indices() {
             if c.is_whitespace() {
                 let (lexeme, rest) = src.split_at(i);
                 *src = rest;
-                return Ok(lexeme);
+                return Some(lexeme);
             }
         }
         // If the loop finished, all of src is one lexeme
         let lexeme = *src;
         *src = ""; // No input after lexeme
+        Some(lexeme)
+    }
+}
+
+fn next_name<'a>(srcref: &mut &'a str, i: usize) -> Result<&'a str, ParseError<'a>> {
+    if let Some(lexeme) = next_lexeme(srcref) {
+        let mut chars = lexeme.chars();
+        // Match for one alphabetic char, then alphanumeric chars and underscores
+        if chars.next().unwrap().is_alphabetic() {
+            // `unwrap` because lexeme always has at least one character
+            for c in chars {
+                if !c.is_alphabetic() && !c.is_digit(10) && c != '_' {
+                    return Err(ParseError::ExpectedName(Some(lexeme), i));
+                }
+            }
+        }
         Ok(lexeme)
+    } else {
+        Err(ParseError::ExpectedName(None, i))
     }
 }
 
-// TODO: return a Result
-fn next_usize(srcref: &mut &str) -> usize {
-    if let Ok(lexeme) = next_lexeme(srcref) {
+fn next_usize<'a>(srcref: &mut &'a str, i: usize) -> Result<usize, ParseError<'a>> {
+    if let Some(lexeme) = next_lexeme(srcref) {
         match lexeme.parse::<usize>() {
-            Ok(x) => x,
-            Err(_) => panic!("Error! Expected floating point number, found {}", lexeme)
+            Ok(x) => Ok(x),
+            Err(_) => Err(ParseError::ExpectedUnsigned(Some(lexeme), i))
         }
     } else {
-        panic!("Error! Expected floating point number, found end of line");
+        Err(ParseError::ExpectedUnsigned(None, i))
     }
 }
 
-// TODO: return a Result
-fn next_float(srcref: &mut &str) -> f64 {
-    if let Ok(lexeme) = next_lexeme(srcref) {
+fn next_float<'a>(srcref: &mut &'a str, i: usize) -> Result<f64, ParseError<'a>> {
+    if let Some(lexeme) = next_lexeme(srcref) {
         match lexeme.parse::<f64>() {
-            Ok(x) => x,
-            Err(_) => panic!("Error! Expected floating point number, found {}", lexeme)
+            Ok(x) => Ok(x),
+            Err(_) => Err(ParseError::ExpectedNumber(Some(lexeme), i))
         }
     } else {
-        panic!("Error! Expected floating point number, found end of line");
+        Err(ParseError::ExpectedNumber(None, i))
     }
 }
 
-fn next_axis(srcref: &mut &str) -> Axis {
+fn next_axis<'a>(srcref: &mut &'a str, i: usize) -> Result<Axis, ParseError<'a>> {
     let lexeme = next_lexeme(srcref);
     match lexeme {
-        Ok("x") => Axis::X,
-        Ok("y") => Axis::Y,
-        Ok("z") => Axis::Z,
-        Ok(word) => panic!("Error! Expected floating point number, found {}", word),
-        Err(_) => panic!("Error! Expected floating points number, found end of line")
+        Some("x") => Ok(Axis::X),
+        Some("y") => Ok(Axis::Y),
+        Some("z") => Ok(Axis::Z),
+        Some(word) => Err(ParseError::ExpectedAxis(Some(word), i)),
+        None => Err(ParseError::ExpectedAxis(None, i)),
     }
 }
