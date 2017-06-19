@@ -1,35 +1,11 @@
 use std::fmt;
+use exec::{ Variation, LightingConstants };
 
 #[derive(Debug, Clone, Copy)]
 pub enum Axis {
     X,
     Y,
     Z
-}
-
-#[derive(Clone, Debug)]
-pub struct Variation<'a> {
-    pub knob: &'a str,
-    pub fst_frame: usize,
-    pub last_frame: usize,
-    pub min_val: f64,
-    pub max_val: f64,
-}
-
-// TODO: find better place for LightingConstants struct
-
-#[derive(Clone, Debug)]
-pub struct LightingConstants {
-    ka_r: f64,
-    kd_r: f64,
-    ks_r: f64,
-    ka_g: f64,
-    kd_g: f64,
-    ks_g: f64,
-    ka_b: f64,
-    kd_b: f64,
-    ks_b: f64,
-    // TODO: what's up with R, G, B "intensities" (optional args described in MDL.spec)
 }
 
 #[derive(Debug)]

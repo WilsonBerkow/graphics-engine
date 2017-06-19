@@ -2,7 +2,7 @@ use std::time::Instant;
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
-use parse::{ Command, Axis, LightingConstants, Variation };
+use parse::{ Command, Axis };
 use matrix::Matrix;
 use solid;
 use render::{ self, Screen, ZBuffer };
@@ -78,6 +78,29 @@ struct AnimData<'a> {
     frames: usize,
     basename: Option<&'a str>,
     varies: Vec<Variation<'a>>
+}
+
+#[derive(Clone, Debug)]
+pub struct Variation<'a> {
+    pub knob: &'a str,
+    pub fst_frame: usize,
+    pub last_frame: usize,
+    pub min_val: f64,
+    pub max_val: f64,
+}
+
+#[derive(Clone, Debug)]
+pub struct LightingConstants {
+    pub ka_r: f64,
+    pub kd_r: f64,
+    pub ks_r: f64,
+    pub ka_g: f64,
+    pub kd_g: f64,
+    pub ks_g: f64,
+    pub ka_b: f64,
+    pub kd_b: f64,
+    pub ks_b: f64,
+    // TODO: what's up with R, G, B "intensities" (optional args described in MDL.spec)
 }
 
 fn get_anim_data<'a>(commands: &Vec<Command<'a>>) -> Option<AnimData<'a>> {
