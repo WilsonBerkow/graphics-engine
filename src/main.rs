@@ -55,7 +55,7 @@ fn main() {
                     let start = Instant::now();
 
                     // Parse script and exit on syntax error
-                    let cmds = match parse::parse(&s) {
+                    let cmds = match parse::parse_script(&s) {
                         Ok(cmds) => cmds,
                         Err(parse_error) => {
                             println!("\n{}", parse_error);

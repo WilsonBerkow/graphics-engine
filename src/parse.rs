@@ -68,7 +68,7 @@ pub enum ParseError<'a> {
 }
 
 // Util function for Display impl for ParseError. Displays bad tokens or unexpected end of line
-fn err_display_EOL_or_lexeme(optlex: Option<&str>) -> String {
+fn err_display_eol_or_lexeme(optlex: Option<&str>) -> String {
     if let Some(lexeme) = optlex {
         format!("'{}'", lexeme)
     } else {
@@ -82,16 +82,16 @@ impl<'a> fmt::Display for ParseError<'a> {
         // Then print the line number and the error info
         match *self {
             ParseError::ExpectedNumber(optlex, linum) => {
-                write!(f, "{}. Expected number, found {}", linum, err_display_EOL_or_lexeme(optlex))
+                write!(f, "{}. Expected number, found {}", linum, err_display_eol_or_lexeme(optlex))
             },
             ParseError::ExpectedUnsigned(optlex, linum) => {
-                write!(f, "{}. Expected unsigned integer, found {}", linum, err_display_EOL_or_lexeme(optlex))
+                write!(f, "{}. Expected unsigned integer, found {}", linum, err_display_eol_or_lexeme(optlex))
             },
             ParseError::ExpectedName(optlex, linum) => {
-                write!(f, "{}. Expected name, found {}", linum, err_display_EOL_or_lexeme(optlex))
+                write!(f, "{}. Expected name, found {}", linum, err_display_eol_or_lexeme(optlex))
             },
             ParseError::ExpectedAxis(optlex, linum) => {
-                write!(f, "{}. Expected axis (x or y or z), found {}", linum, err_display_EOL_or_lexeme(optlex))
+                write!(f, "{}. Expected axis (x or y or z), found {}", linum, err_display_eol_or_lexeme(optlex))
             },
             ParseError::UnexpectedTrailing(trailing, linum) => {
                 write!(f, "{}. Unexpected characters after command: '{}'", linum, trailing)
@@ -103,163 +103,24 @@ impl<'a> fmt::Display for ParseError<'a> {
     }
 }
 
-pub fn parse<'a>(script: &'a str) -> Result<Vec<Command<'a>>, ParseError<'a>> {
+pub fn parse_script<'a>(script: &'a str) -> Result<Vec<Command<'a>>, ParseError<'a>> {
     let mut cmds = Vec::new();
-
-    let mut linum: usize = 0;
-
-    for mut line in script.lines() {
-        skip_linespace(&mut line);
+    for (linum, mut line) in script.lines().enumerate() {
         // Skip blank lines and comments
-        // TODO: handle comments at end of lines with commands
-        // TODO: make this not a jank one-liner
-        if line.chars().nth(0) == Some('#') ||
-                line.len() == 0 ||
-                (line.chars().nth(0) == Some('/') &&
-                 line.chars().nth(1) == Some('/')) {
+        skip_linespace(&mut line);
+        if line.len() == 0 || starts_with_comment(line) {
             continue;
         }
 
-        let command = match next_name(&mut line, linum)? {
-            "push" => Command::Push,
+        let cmd = next_cmd(&mut line, linum)?;
 
-            "pop" => Command::Pop,
-
-            "save" => {
-                let filename = next_name(&mut line, linum)?;
-                Command::Save(filename)
-            },
-
-            "display" => Command::Display,
-
-            "move" => {
-                Command::Move {
-                    x: next_float(&mut line, linum)?,
-                    y: next_float(&mut line, linum)?,
-                    z: next_float(&mut line, linum)?,
-                    knob: next_name(&mut line, linum).ok()
-                }
-            },
-
-            "rotate" => {
-                Command::Rotate(
-                    next_axis(&mut line, linum)?,
-                    next_float(&mut line, linum)?,
-                    next_name(&mut line, linum).ok())
-            },
-
-            "scale" => {
-                Command::Scale {
-                    x: next_float(&mut line, linum)?,
-                    y: next_float(&mut line, linum)?,
-                    z: next_float(&mut line, linum)?,
-                    knob: next_name(&mut line, linum).ok()
-                }
-            },
-
-            "box" => {
-                Command::Box {
-                    x: next_float(&mut line, linum)?,
-                    y: next_float(&mut line, linum)?,
-                    z: next_float(&mut line, linum)?,
-                    w: next_float(&mut line, linum)?,
-                    h: next_float(&mut line, linum)?,
-                    d: next_float(&mut line, linum)?
-                }
-            },
-
-            "sphere" => {
-                Command::Sphere {
-                    x: next_float(&mut line, linum)?,
-                    y: next_float(&mut line, linum)?,
-                    z: next_float(&mut line, linum)?,
-                    r: next_float(&mut line, linum)?,
-                }
-            },
-
-            "torus" => {
-                Command::Torus {
-                    x: next_float(&mut line, linum)?,
-                    y: next_float(&mut line, linum)?,
-                    z: next_float(&mut line, linum)?,
-                    r0: next_float(&mut line, linum)?,
-                    r1: next_float(&mut line, linum)?,
-                }
-            },
-
-            "line" => {
-                Command::Line {
-                    x0: next_float(&mut line, linum)?,
-                    y0: next_float(&mut line, linum)?,
-                    z0: next_float(&mut line, linum)?,
-                    x1: next_float(&mut line, linum)?,
-                    y1: next_float(&mut line, linum)?,
-                    z1: next_float(&mut line, linum)?
-                }
-            },
-
-            "frames" => Command::Frames(next_usize(&mut line, linum)?),
-
-            "basename" => Command::Basename(next_name(&mut line, linum)?),
-
-            "vary" => {
-                Command::Vary(Variation {
-                    knob: next_name(&mut line, linum)?,
-                    fst_frame: next_usize(&mut line, linum)?,
-                    last_frame: next_usize(&mut line, linum)?,
-                    min_val: next_float(&mut line, linum)?,
-                    max_val: next_float(&mut line, linum)?
-                })
-            },
-
-            "set" => Command::Set(next_name(&mut line, linum)?, next_float(&mut line, linum)?),
-
-            "setknobs" => Command::SetKnobs(next_float(&mut line, linum)?),
-
-            "ambient" => {
-                Command::Ambient(next_float(&mut line, linum)?, next_float(&mut line, linum)?, next_float(&mut line, linum)?)
-            },
-
-            "light" => {
-                Command::Light(
-                    next_float(&mut line, linum)?,
-                    next_float(&mut line, linum)?,
-                    next_float(&mut line, linum)?,
-                    next_float(&mut line, linum)?,
-                    next_float(&mut line, linum)?,
-                    next_float(&mut line, linum)?)
-            },
-
-            "constants" => {
-                Command::Constants(
-                    next_name(&mut line, linum)?,
-                    LightingConstants {
-                        ka_r: next_float(&mut line,  linum)?,
-                        kd_r: next_float(&mut line,  linum)?,
-                        ks_r: next_float(&mut line,  linum)?,
-                        ka_g: next_float(&mut line,  linum)?,
-                        kd_g: next_float(&mut line,  linum)?,
-                        ks_g: next_float(&mut line,  linum)?,
-                        ka_b: next_float(&mut line,  linum)?,
-                        kd_b: next_float(&mut line,  linum)?,
-                        ks_b: next_float(&mut line,  linum)?,
-                    }
-                )
-            },
-
-            other => {
-                return Err(ParseError::UnknownCommand(other, linum));
-            }
-        };
+        cmds.push(cmd);
 
         // Check for trailing input
         skip_linespace(&mut line);
-        if line != "" {
+        if !starts_with_comment(line) && line != "" {
             return Err(ParseError::UnexpectedTrailing(line, linum));
         }
-
-        cmds.push(command);
-        linum += 1;
     }
     Ok(cmds)
 }
@@ -274,6 +135,147 @@ fn skip_linespace<'a>(src: &mut &'a str) {
         }
     }
     *src = ""; // no input after whitespace
+}
+
+fn starts_with_comment(src: &str) -> bool {
+    src.chars().nth(0) == Some('/') &&
+        src.chars().nth(1) == Some('/')
+}
+
+fn next_cmd<'a>(lineref: &mut &'a str, linum: usize) -> Result<Command<'a>, ParseError<'a>> {
+    let cmd = match next_name(lineref, linum)? {
+        "push" => Command::Push,
+
+        "pop" => Command::Pop,
+
+        "save" => {
+            let filename = next_name(lineref, linum)?;
+            Command::Save(filename)
+        },
+
+        "display" => Command::Display,
+
+        "move" => {
+            Command::Move {
+                x: next_float(lineref, linum)?,
+                y: next_float(lineref, linum)?,
+                z: next_float(lineref, linum)?,
+                knob: next_name(lineref, linum).ok()
+            }
+        },
+
+        "rotate" => {
+            Command::Rotate(
+                next_axis(lineref, linum)?,
+                next_float(lineref, linum)?,
+                next_name(lineref, linum).ok())
+        },
+
+        "scale" => {
+            Command::Scale {
+                x: next_float(lineref, linum)?,
+                y: next_float(lineref, linum)?,
+                z: next_float(lineref, linum)?,
+                knob: next_name(lineref, linum).ok()
+            }
+        },
+
+        "box" => {
+            Command::Box {
+                x: next_float(lineref, linum)?,
+                y: next_float(lineref, linum)?,
+                z: next_float(lineref, linum)?,
+                w: next_float(lineref, linum)?,
+                h: next_float(lineref, linum)?,
+                d: next_float(lineref, linum)?
+            }
+        },
+
+        "sphere" => {
+            Command::Sphere {
+                x: next_float(lineref, linum)?,
+                y: next_float(lineref, linum)?,
+                z: next_float(lineref, linum)?,
+                r: next_float(lineref, linum)?,
+            }
+        },
+
+        "torus" => {
+            Command::Torus {
+                x: next_float(lineref, linum)?,
+                y: next_float(lineref, linum)?,
+                z: next_float(lineref, linum)?,
+                r0: next_float(lineref, linum)?,
+                r1: next_float(lineref, linum)?,
+            }
+        },
+
+        "line" => {
+            Command::Line {
+                x0: next_float(lineref, linum)?,
+                y0: next_float(lineref, linum)?,
+                z0: next_float(lineref, linum)?,
+                x1: next_float(lineref, linum)?,
+                y1: next_float(lineref, linum)?,
+                z1: next_float(lineref, linum)?
+            }
+        },
+
+        "frames" => Command::Frames(next_usize(lineref, linum)?),
+
+        "basename" => Command::Basename(next_name(lineref, linum)?),
+
+        "vary" => {
+            Command::Vary(Variation {
+                knob: next_name(lineref, linum)?,
+                fst_frame: next_usize(lineref, linum)?,
+                last_frame: next_usize(lineref, linum)?,
+                min_val: next_float(lineref, linum)?,
+                max_val: next_float(lineref, linum)?
+            })
+        },
+
+        "set" => Command::Set(next_name(lineref, linum)?, next_float(lineref, linum)?),
+
+        "setknobs" => Command::SetKnobs(next_float(lineref, linum)?),
+
+        "ambient" => {
+            Command::Ambient(next_float(lineref, linum)?, next_float(lineref, linum)?, next_float(lineref, linum)?)
+        },
+
+        "light" => {
+            Command::Light(
+                next_float(lineref, linum)?,
+                next_float(lineref, linum)?,
+                next_float(lineref, linum)?,
+                next_float(lineref, linum)?,
+                next_float(lineref, linum)?,
+                next_float(lineref, linum)?)
+        },
+
+        "constants" => {
+            Command::Constants(
+                next_name(lineref, linum)?,
+                LightingConstants {
+                    ka_r: next_float(lineref,  linum)?,
+                    kd_r: next_float(lineref,  linum)?,
+                    ks_r: next_float(lineref,  linum)?,
+                    ka_g: next_float(lineref,  linum)?,
+                    kd_g: next_float(lineref,  linum)?,
+                    ks_g: next_float(lineref,  linum)?,
+                    ka_b: next_float(lineref,  linum)?,
+                    kd_b: next_float(lineref,  linum)?,
+                    ks_b: next_float(lineref,  linum)?,
+                }
+                )
+        },
+
+        other => {
+            return Err(ParseError::UnknownCommand(other, linum));
+        }
+    };
+
+    Ok(cmd)
 }
 
 /// Return value:
