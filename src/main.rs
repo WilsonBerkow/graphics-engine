@@ -39,7 +39,7 @@ fn main() {
             println!("Error opening file 'script': {}", e);
             return;
         },
-        Ok(file) => {
+        Ok(mut file) => {
             let result = file.read_to_string(&mut s);
             if let Err(e) = result {
                 println!("Error reading file 'script': {}", e);
