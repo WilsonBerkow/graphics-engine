@@ -86,7 +86,7 @@ fn main() {
     }
 
     // Wait for worker threads to finish saving images
-    worker_pool_handle.join();
+    worker_pool_handle.join().expect("panic while saving images");
 
     let elapsed = start.elapsed();
     println!("Elapsed time, after generating frames and converting to PNGs: {}", display_duration(elapsed));
