@@ -147,7 +147,7 @@ pub struct LightingData<'a> {
 }
 
 fn get_lighting_data<'a>(cmds: &Vec<Command<'a>>) -> LightingData<'a> {
-    // Count `light` and `constants` commands in cmds (so we can set capacities later):
+    // Count the number of `light` and `constants` commands in cmds (so we can set capacities later):
     let mut num_lights = 0;
     let mut num_constants = 0;
     for cmd in cmds {
